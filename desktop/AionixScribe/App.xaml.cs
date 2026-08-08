@@ -16,6 +16,7 @@ public partial class App : System.Windows.Application
     private Forms.ToolStripMenuItem? _pendingMenuItem;
     private SettingsWindow? _settingsWindow;
     private HistoryWindow? _historyWindow;
+    private MainPanelWindow? _mainPanel;
 
     private enum AppState { Idle, Listening, Processing }
     private AppState _state = AppState.Idle;
@@ -142,6 +143,8 @@ public partial class App : System.Windows.Application
             Text = "Aionix Scribe",
         };
         var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Abrir Aionix Scribe", null, (_, _) => OpenMainPanel());
+        menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Histórico...", null, (_, _) => OpenHistory());
         menu.Items.Add("Configurações...", null, (_, _) => OpenSettings());
         _pendingMenuItem = new Forms.ToolStripMenuItem("Reprocessar pendências", null, OnReprocessPendingClicked) { Enabled = false };
@@ -149,8 +152,24 @@ public partial class App : System.Windows.Application
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Sair", null, (_, _) => Shutdown());
         _tray.ContextMenuStrip = menu;
+        _tray.DoubleClick += (_, _) => OpenMainPanel();
 
         RefreshPendingMenu();
+    }
+
+    public void OpenMainPanel()
+    {
+        if (_mainPanel == null || !_mainPanel.IsLoaded)
+        {
+            _mainPanel = new MainPanelWindow();
+            _mainPanel.Closed += (_, _) => _mainPanel = null;
+        }
+        else
+        {
+            _mainPanel.Refresh();
+        }
+        _mainPanel.Show();
+        _mainPanel.Activate();
     }
 
     private async void OnHotkeyTriggered()
@@ -313,7 +332,7 @@ public partial class App : System.Windows.Application
         _hideTimer.Start();
     }
 
-    private void OpenHistory()
+    public void OpenHistory()
     {
         if (_historyWindow == null || !_historyWindow.IsLoaded)
         {
@@ -324,7 +343,7 @@ public partial class App : System.Windows.Application
         _historyWindow.Activate();
     }
 
-    private void OpenSettings()
+    public void OpenSettings()
     {
         if (_settingsWindow == null || !_settingsWindow.IsLoaded)
         {

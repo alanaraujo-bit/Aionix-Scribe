@@ -28,7 +28,7 @@ O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo propriet�
 - [x] Tratamento de "nenhum microfone disponível": exceção específica (`NoMicrophoneException`) com mensagem clara em vez de erro técnico cru — descoberto e validado ao vivo (o headset do proprietário desconectou/dormiu no meio do teste, cenário real, não hipotético). Seleção manual entre múltiplos microfones ainda não existe (só usa o dispositivo padrão do Windows).
 
 ## P2 — Produto
-- [ ] Painel principal (status, atalho ativo, últimas transcrições, atividade)
+- [x] Painel principal (`MainPanelWindow`): status do microfone (detecta ausência em tempo real), atalho ativo, últimas 5 transcrições, atalhos para Histórico/Configurações. Aberto por duplo-clique na bandeja ou menu "Abrir Aionix Scribe". Validado ao vivo.
 - [x] Histórico: `HistoryWindow` acessível pela bandeja, lista últimos ditados (até 200, `%LOCALAPPDATA%\AionixScribe\history.json`), copiar/excluir. Validado ao vivo. Pesquisa/filtro ainda não existe (só relevante quando o histórico crescer de verdade).
 - [ ] Configurações (conta, áudio, atalhos, idioma, privacidade, inicialização) — hoje só tem atalho (P1/D012); conta/áudio/idioma/privacidade/inicialização faltam
 - [ ] Onboarding com primeira transcrição guiada
