@@ -130,4 +130,16 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Limitações conhecidas e aceitas**: combos interceptados pelo próprio Windows antes de qualquer hook em user-mode (Alt+Tab, Ctrl+Alt+Del, Win+L) não podem ser usados como push-to-talk — limitação do SO, não do código. A ordem de pressão importa (modificadores antes da tecla principal), espelhando o comportamento que o toggle já tinha.
 - **Validado ao vivo pelo proprietário**: segurar/soltar grava apenas durante o período pressionado; alternância entre os dois modos funciona sem deixar o app sem nenhum mecanismo de ativação registrado.
 
+---
+
+## D015 — Configurações reais (áudio, inicialização, privacidade) + extração de tema
+
+- **Contexto**: a seção "Configurações" só tinha o atalho (D012). "Conta" e "Idioma" foram deliberadamente adiadas — construí-las agora seria UI sem funcionalidade real por trás (dependem de P3/multi-idioma), o que a diretiva mestre proíbe explicitamente. Só entraram seções com funcionalidade real disponível hoje.
+- **Decisão**: três seções novas, todas reais:
+  - **Áudio**: `AudioSettings.cs` persiste o índice do microfone escolhido; `AudioRecorder` usa `WaveInEvent.DeviceNumber`, com fallback automático pro dispositivo padrão se o índice salvo não existir mais (dispositivo removido/desconectado) — mesma filosofia defensiva de D012.
+  - **Inicialização**: `StartupSettings.cs` liga/desliga `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, funciona mesmo sem instalador (P5). Compara o caminho gravado com o caminho atual do executável para não mostrar "ativado" depois do app ser movido.
+  - **Privacidade**: texto verificado contra o código real do backend (áudio processado em memória, nunca persistido em disco/banco) e lista onde os dados locais ficam, com botão para abrir a pasta.
+- **Refactor acompanhante**: `Theme.xaml` consolida a paleta de cores (antes hex duplicado em 4 arquivos XAML) em brushes nomeados na `Application.Resources`. Puramente mecânico — sem mudança visual — mas necessário antes de um tema Light/Dark real (ainda em aberto) para não multiplicar a duplicação.
+- **Validado**: build limpo, todas as chaves `StaticResource` conferidas manualmente contra as definidas em `Theme.xaml` (sem órfãs), app reaberto sem crash. Teste ao vivo das três novas seções (trocar microfone, ligar/desligar inicialização automática, abrir pasta de dados) pendente de confirmação do proprietário.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

@@ -4,22 +4,22 @@
         Title="Aionix Scribe"
         Width="440" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
-        Background="#14141E"
+        Background="{StaticResource WindowBackgroundBrush}"
         Foreground="White"
         FontFamily="Segoe UI"
         ResizeMode="CanMinimize">
     <StackPanel Margin="24">
         <TextBlock Text="Aionix Scribe" FontSize="22" FontWeight="Bold" Margin="0,0,0,2"/>
-        <TextBlock Text="Falar é uma forma superior de digitar." Foreground="#9CA3AF" FontSize="12" Margin="0,0,0,20"/>
+        <TextBlock Text="Falar é uma forma superior de digitar." Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,0,0,20"/>
 
-        <Border Background="#1E1E2A" CornerRadius="10" Padding="16" Margin="0,0,0,12">
+        <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="10" Padding="16" Margin="0,0,0,12">
             <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <Ellipse x:Name="MicStatusDot" Width="10" Height="10" Fill="#4ADE80" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Ellipse x:Name="MicStatusDot" Width="10" Height="10" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock x:Name="MicStatusText" Text="Microfone pronto" VerticalAlignment="Center" FontSize="13"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Atalho: " Foreground="#9CA3AF" FontSize="13"/>
+                    <TextBlock Text="Atalho: " Foreground="{StaticResource MutedTextBrush}" FontSize="13"/>
                     <TextBlock x:Name="HotkeyText" Text="—" FontWeight="SemiBold" FontSize="13"/>
                 </StackPanel>
             </StackPanel>
@@ -29,9 +29,9 @@
         <ItemsControl x:Name="RecentList">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Border Background="#1E1E2A" CornerRadius="8" Padding="10" Margin="0,0,0,6">
+                    <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="10" Margin="0,0,0,6">
                         <StackPanel>
-                            <TextBlock Text="{Binding TimestampDisplay}" FontSize="10" Foreground="#9CA3AF"/>
+                            <TextBlock Text="{Binding TimestampDisplay}" FontSize="10" Foreground="{StaticResource MutedTextBrush}"/>
                             <TextBlock Text="{Binding Text}" FontSize="12" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                         </StackPanel>
                     </Border>
@@ -39,13 +39,13 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
         <TextBlock x:Name="EmptyRecentText" Text="Nenhum ditado ainda. Pressione o atalho e fale para começar."
-                   Foreground="#9CA3AF" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" Visibility="Collapsed"/>
+                   Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" Visibility="Collapsed"/>
 
         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
             <Button Content="Ver histórico completo" Padding="12,6" Margin="0,0,8,0"
-                    Background="#2D2D3D" Foreground="White" BorderThickness="0" Click="OnHistoryClicked"/>
+                    Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0" Click="OnHistoryClicked"/>
             <Button Content="Configurações" Padding="12,6"
-                    Background="#2D2D3D" Foreground="White" BorderThickness="0" Click="OnSettingsClicked"/>
+                    Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0" Click="OnSettingsClicked"/>
         </StackPanel>
     </StackPanel>
 </Window>

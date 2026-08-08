@@ -10,12 +10,12 @@
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight">
     <Border CornerRadius="14"
-            Background="#E6141420"
-            BorderBrush="#332A2A3A"
+            Background="{StaticResource OverlayBackgroundBrush}"
+            BorderBrush="{StaticResource OverlayBorderBrush}"
             BorderThickness="1"
             Padding="16,10">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#4ADE80" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
             <TextBlock x:Name="StatusText" Text="Ouvindo..." Foreground="White" FontSize="14" FontFamily="Segoe UI" VerticalAlignment="Center"/>
         </StackPanel>
     </Border>

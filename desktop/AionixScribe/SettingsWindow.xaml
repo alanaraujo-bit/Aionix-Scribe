@@ -5,41 +5,41 @@
         Width="420" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Background="#14141E"
+        Background="{StaticResource WindowBackgroundBrush}"
         Foreground="White"
         FontFamily="Segoe UI">
     <StackPanel Margin="24">
         <TextBlock Text="Atalho global" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
         <TextBlock x:Name="ModeDescriptionText" Text="Pressione o atalho uma vez para começar a ditar, e de novo para parar."
-                   Foreground="#9CA3AF" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,16"/>
+                   Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,16"/>
 
-        <Border Background="#1E1E2A" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+        <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,12">
             <TextBlock x:Name="CurrentHotkeyText" Text="Ctrl+Alt+Espaço" FontSize="20" FontWeight="Bold"
-                       HorizontalAlignment="Center" Foreground="#4ADE80"/>
+                       HorizontalAlignment="Center" Foreground="{StaticResource SuccessBrush}"/>
         </Border>
 
-        <TextBlock x:Name="StatusText" FontSize="12" Foreground="#F87171" Margin="0,0,0,12" TextWrapping="Wrap" Visibility="Collapsed"/>
+        <TextBlock x:Name="StatusText" FontSize="12" Foreground="{StaticResource ErrorBrush}" Margin="0,0,0,12" TextWrapping="Wrap" Visibility="Collapsed"/>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="0,0,0,20">
             <Button x:Name="ChangeButton" Content="Alterar atalho" Click="OnChangeClicked"
-                    Padding="12,6" Margin="0,0,8,0" Background="#2D2D3D" Foreground="White" BorderThickness="0"/>
+                    Padding="12,6" Margin="0,0,8,0" Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0"/>
             <Button x:Name="ResetButton" Content="Restaurar padrão" Click="OnResetClicked"
-                    Padding="12,6" Margin="0,0,8,0" Background="#2D2D3D" Foreground="White" BorderThickness="0"/>
-            <Button Content="Fechar" Click="OnCloseClicked" Padding="12,6" Background="#2D2D3D" Foreground="White" BorderThickness="0"/>
+                    Padding="12,6" Margin="0,0,8,0" Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0"/>
+            <Button Content="Fechar" Click="OnCloseClicked" Padding="12,6" Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0"/>
         </StackPanel>
 
         <TextBlock Text="Modo de ativação" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
         <TextBlock Text="Como o atalho controla a gravação."
-                   Foreground="#9CA3AF" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                   Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
-        <Border Background="#1E1E2A" CornerRadius="8" Padding="16">
+        <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,20">
             <StackPanel>
                 <RadioButton x:Name="ToggleModeRadio" GroupName="HotkeyMode" Foreground="White"
                              Checked="OnModeChanged" Margin="0,0,0,10">
                     <StackPanel>
                         <TextBlock Text="Alternar" FontWeight="SemiBold"/>
                         <TextBlock Text="Pressiona para começar, pressiona de novo para parar."
-                                   Foreground="#9CA3AF" FontSize="11" TextWrapping="Wrap"/>
+                                   Foreground="{StaticResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap"/>
                     </StackPanel>
                 </RadioButton>
                 <RadioButton x:Name="PushToTalkModeRadio" GroupName="HotkeyMode" Foreground="White"
@@ -47,9 +47,45 @@
                     <StackPanel>
                         <TextBlock Text="Segurar para falar" FontWeight="SemiBold"/>
                         <TextBlock Text="Mantém pressionado enquanto fala, solta para parar."
-                                   Foreground="#9CA3AF" FontSize="11" TextWrapping="Wrap"/>
+                                   Foreground="{StaticResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap"/>
                     </StackPanel>
                 </RadioButton>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Text="Áudio" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Microfone usado para gravar o ditado."
+                   Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+        <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,20">
+            <ComboBox x:Name="MicrophoneCombo" SelectionChanged="OnMicrophoneChanged"
+                      DisplayMemberPath="Name" Padding="8,6"
+                      Foreground="White" Background="{StaticResource ButtonBackgroundBrush}"/>
+        </Border>
+
+        <TextBlock Text="Inicialização" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Controla se o Aionix Scribe abre sozinho ao ligar o Windows."
+                   Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+        <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,20">
+            <CheckBox x:Name="StartWithWindowsCheck" Content="Iniciar com o Windows automaticamente"
+                      Foreground="White" Checked="OnStartWithWindowsChanged" Unchecked="OnStartWithWindowsChanged"/>
+        </Border>
+
+        <TextBlock Text="Privacidade" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="O que acontece com seus dados."
+                   Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+        <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="16">
+            <StackPanel>
+                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,10">
+                    <Run Text="O áudio gravado é enviado ao servidor do Aionix Scribe só durante o processamento do ditado (para transcrição via Gemini) e não fica salvo lá — nem em disco, nem em banco de dados. Ele existe apenas no tempo da requisição."/>
+                </TextBlock>
+                <TextBlock Foreground="{StaticResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10">
+                    Guardado localmente nesta máquina, em %LOCALAPPDATA%\AionixScribe\: atalho, modo de ativação e microfone escolhidos, histórico de ditados (até 200 itens) e gravações pendentes de reprocessamento. Para apagar o histórico de ditados, use o botão "Limpar histórico" na janela de Histórico.
+                </TextBlock>
+                <Button Content="Abrir pasta de dados" Click="OnOpenDataFolderClicked" Padding="12,6"
+                        HorizontalAlignment="Left" Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0"/>
             </StackPanel>
         </Border>
     </StackPanel>

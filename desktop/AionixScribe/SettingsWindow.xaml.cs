@@ -1,19 +1,93 @@
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using NAudio.Wave;
 
 namespace AionixScribe;
+
+public sealed record MicrophoneOption(int Index, string Name);
 
 public partial class SettingsWindow : Window
 {
     private bool _capturing;
     private bool _initializingMode;
+    private bool _initializingMicrophone;
+    private bool _initializingStartup;
 
     public SettingsWindow()
     {
         InitializeComponent();
         RefreshCurrentHotkeyDisplay();
         RefreshModeSelection();
+        RefreshMicrophoneList();
+        RefreshStartupState();
         PreviewKeyDown += OnPreviewKeyDown;
+    }
+
+    private void RefreshMicrophoneList()
+    {
+        _initializingMicrophone = true;
+
+        var options = new List<MicrophoneOption> { new(AudioSettings.SystemDefaultDeviceIndex, "Padrão do sistema") };
+        for (var i = 0; i < WaveInEvent.DeviceCount; i++)
+        {
+            options.Add(new MicrophoneOption(i, WaveInEvent.GetCapabilities(i).ProductName));
+        }
+        MicrophoneCombo.ItemsSource = options;
+
+        var savedIndex = AudioSettings.LoadDeviceIndex();
+        var selected = options.FirstOrDefault(o => o.Index == savedIndex) ?? options[0];
+        MicrophoneCombo.SelectedItem = selected;
+
+        _initializingMicrophone = false;
+    }
+
+    private void OnMicrophoneChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_initializingMicrophone) return;
+        if (MicrophoneCombo.SelectedItem is not MicrophoneOption option) return;
+
+        AudioSettings.SaveDeviceIndex(option.Index);
+    }
+
+    private void RefreshStartupState()
+    {
+        _initializingStartup = true;
+        StartWithWindowsCheck.IsChecked = StartupSettings.IsEnabled();
+        _initializingStartup = false;
+    }
+
+    private void OnStartWithWindowsChanged(object sender, RoutedEventArgs e)
+    {
+        if (_initializingStartup) return;
+
+        try
+        {
+            StartupSettings.SetEnabled(StartWithWindowsCheck.IsChecked == true);
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Não foi possível atualizar a inicialização automática: {ex.Message}");
+            RefreshStartupState();
+        }
+    }
+
+    private void OnOpenDataFolderClicked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var folder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AionixScribe");
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Não foi possível abrir a pasta de dados: {ex.Message}");
+        }
     }
 
     private void RefreshCurrentHotkeyDisplay()

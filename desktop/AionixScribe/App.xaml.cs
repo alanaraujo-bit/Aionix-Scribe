@@ -276,6 +276,9 @@ public partial class App : System.Windows.Application
     {
         try
         {
+            // Lido a cada gravação (não só no startup) para que uma troca de microfone em
+            // Configurações valha já no próximo ditado, sem precisar reiniciar o app.
+            _recorder.DeviceIndex = AudioSettings.LoadDeviceIndex();
             _recorder.Start();
         }
         catch (NoMicrophoneException ex)

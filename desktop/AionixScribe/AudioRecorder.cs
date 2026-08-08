@@ -17,6 +17,10 @@ public sealed class AudioRecorder : IDisposable
 
     public bool IsRecording { get; private set; }
 
+    /// Índice do dispositivo de entrada a usar (AudioSettings.SystemDefaultDeviceIndex/-1 = padrão
+    /// do sistema, mapeado para 0). Settável a qualquer momento antes de Start().
+    public int DeviceIndex { get; set; } = AudioSettings.SystemDefaultDeviceIndex;
+
     public void Start()
     {
         if (IsRecording) return;
@@ -29,9 +33,18 @@ public sealed class AudioRecorder : IDisposable
             throw new NoMicrophoneException();
         }
 
+        // Dispositivo salvo pode ter sido removido/desconectado desde a última vez — cai para o
+        // padrão do sistema em vez de deixar o NAudio lançar uma exceção genérica.
+        var deviceNumber = DeviceIndex;
+        if (deviceNumber < 0 || deviceNumber >= WaveInEvent.DeviceCount)
+        {
+            deviceNumber = 0;
+        }
+
         _buffer = new MemoryStream();
         _waveIn = new WaveInEvent
         {
+            DeviceNumber = deviceNumber,
             WaveFormat = new WaveFormat(16000, 16, 1), // 16kHz mono PCM — suficiente para voz, leve para upload
         };
         _writer = new WaveFileWriter(_buffer, _waveIn.WaveFormat);
