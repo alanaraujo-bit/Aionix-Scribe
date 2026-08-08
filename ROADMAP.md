@@ -4,8 +4,8 @@ Hierarquia de valor (não é uma sequência rígida de datas). Cada fase só é 
 
 ## P0 — Experiência essencial (capturar → compreender → formatar → inserir)
 **Status: em andamento**
-- [ ] Spike: hotkey global + overlay always-on-top sem roubo de foco + injeção de texto (Notepad, browser, VS Code, Terminal, janela elevada)
-- [ ] Decisão de stack final registrada em DECISIONS.md (D003)
+- [x] Spike: hotkey global + overlay always-on-top sem roubo de foco + injeção de texto (Notepad, browser, VS Code testados; Windows Terminal inconclusivo; janela elevada requer verificação manual — ver DECISIONS.md D003)
+- [x] Decisão de stack final registrada em DECISIONS.md (D003): .NET 8 + WPF + Win32 P/Invoke; inserção de texto via clipboard-paste (não keystroke simulation)
 - [ ] Captura de áudio (seleção de microfone, start/stop)
 - [ ] Backend mínimo: auth de dispositivo + proxy Gemini (nenhuma chamada direta do cliente)
 - [ ] Pipeline: áudio → transcrição → limpeza (hesitações/repetições) → pontuação/formatação
