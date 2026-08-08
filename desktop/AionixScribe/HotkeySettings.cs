@@ -3,7 +3,9 @@ using System.Text.Json;
 
 namespace AionixScribe;
 
-public sealed record HotkeyChoice(uint Modifiers, uint Vk, string Label);
+public enum HotkeyMode { Toggle, PushToTalk }
+
+public sealed record HotkeyChoice(uint Modifiers, uint Vk, string Label, HotkeyMode Mode = HotkeyMode.Toggle);
 
 /// Persiste a escolha de atalho do usuário. Ausência de arquivo = "automático" (cadeia de
 /// fallback em App.xaml.cs). Formato simples de propósito — não é um sistema de configurações
@@ -14,7 +16,9 @@ public static class HotkeySettings
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "AionixScribe", "settings.json");
 
-    private record StoredHotkey(uint Modifiers, uint Vk, string Label);
+    // Mode como string? (não HotkeyMode) para que um settings.json antigo sem o campo desserialize
+    // com Mode == null em vez de estourar — daí caímos no default Toggle abaixo.
+    private record StoredHotkey(uint Modifiers, uint Vk, string Label, string? Mode = null);
 
     public static HotkeyChoice? LoadCustom()
     {
@@ -23,7 +27,9 @@ public static class HotkeySettings
             if (!File.Exists(FilePath)) return null;
             var json = File.ReadAllText(FilePath);
             var stored = JsonSerializer.Deserialize<StoredHotkey>(json);
-            return stored == null ? null : new HotkeyChoice(stored.Modifiers, stored.Vk, stored.Label);
+            if (stored == null) return null;
+            var mode = stored.Mode == nameof(HotkeyMode.PushToTalk) ? HotkeyMode.PushToTalk : HotkeyMode.Toggle;
+            return new HotkeyChoice(stored.Modifiers, stored.Vk, stored.Label, mode);
         }
         catch
         {
@@ -34,7 +40,7 @@ public static class HotkeySettings
     public static void SaveCustom(HotkeyChoice choice)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        var stored = new StoredHotkey(choice.Modifiers, choice.Vk, choice.Label);
+        var stored = new StoredHotkey(choice.Modifiers, choice.Vk, choice.Label, choice.Mode.ToString());
         File.WriteAllText(FilePath, JsonSerializer.Serialize(stored));
     }
 

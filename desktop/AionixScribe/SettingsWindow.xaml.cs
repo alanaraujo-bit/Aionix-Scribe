@@ -6,17 +6,55 @@ namespace AionixScribe;
 public partial class SettingsWindow : Window
 {
     private bool _capturing;
+    private bool _initializingMode;
 
     public SettingsWindow()
     {
         InitializeComponent();
         RefreshCurrentHotkeyDisplay();
+        RefreshModeSelection();
         PreviewKeyDown += OnPreviewKeyDown;
     }
 
     private void RefreshCurrentHotkeyDisplay()
     {
         CurrentHotkeyText.Text = ((App)System.Windows.Application.Current).CurrentHotkeyLabel;
+    }
+
+    private void RefreshModeSelection()
+    {
+        var mode = ((App)System.Windows.Application.Current).CurrentHotkeyMode;
+        // Marca o RadioButton sem disparar OnModeChanged (que reaplicaria o mesmo modo no App).
+        _initializingMode = true;
+        ToggleModeRadio.IsChecked = mode == HotkeyMode.Toggle;
+        PushToTalkModeRadio.IsChecked = mode == HotkeyMode.PushToTalk;
+        _initializingMode = false;
+        UpdateModeDescription(mode);
+    }
+
+    private void UpdateModeDescription(HotkeyMode mode)
+    {
+        ModeDescriptionText.Text = mode == HotkeyMode.Toggle
+            ? "Pressione o atalho uma vez para começar a ditar, e de novo para parar."
+            : "Segure o atalho para ditar, solte para parar.";
+    }
+
+    private void OnModeChanged(object sender, RoutedEventArgs e)
+    {
+        if (_initializingMode) return;
+
+        var mode = ReferenceEquals(sender, PushToTalkModeRadio) ? HotkeyMode.PushToTalk : HotkeyMode.Toggle;
+        var app = (App)System.Windows.Application.Current;
+        if (app.TryChangeMode(mode, out var error))
+        {
+            UpdateModeDescription(mode);
+            StatusText.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            ShowError(error ?? "Não foi possível trocar o modo de ativação.");
+            RefreshModeSelection();
+        }
     }
 
     private void OnChangeClicked(object sender, RoutedEventArgs e)
@@ -95,6 +133,7 @@ public partial class SettingsWindow : Window
         var app = (App)System.Windows.Application.Current;
         app.ResetHotkeyToAuto();
         RefreshCurrentHotkeyDisplay();
+        RefreshModeSelection();
         StatusText.Visibility = Visibility.Collapsed;
     }
 

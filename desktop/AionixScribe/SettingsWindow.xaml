@@ -10,7 +10,7 @@
         FontFamily="Segoe UI">
     <StackPanel Margin="24">
         <TextBlock Text="Atalho global" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
-        <TextBlock Text="Pressione o atalho uma vez para começar a ditar, e de novo para parar."
+        <TextBlock x:Name="ModeDescriptionText" Text="Pressione o atalho uma vez para começar a ditar, e de novo para parar."
                    Foreground="#9CA3AF" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,16"/>
 
         <Border Background="#1E1E2A" CornerRadius="8" Padding="16" Margin="0,0,0,12">
@@ -20,12 +20,37 @@
 
         <TextBlock x:Name="StatusText" FontSize="12" Foreground="#F87171" Margin="0,0,0,12" TextWrapping="Wrap" Visibility="Collapsed"/>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="0,0,0,20">
             <Button x:Name="ChangeButton" Content="Alterar atalho" Click="OnChangeClicked"
                     Padding="12,6" Margin="0,0,8,0" Background="#2D2D3D" Foreground="White" BorderThickness="0"/>
             <Button x:Name="ResetButton" Content="Restaurar padrão" Click="OnResetClicked"
                     Padding="12,6" Margin="0,0,8,0" Background="#2D2D3D" Foreground="White" BorderThickness="0"/>
             <Button Content="Fechar" Click="OnCloseClicked" Padding="12,6" Background="#2D2D3D" Foreground="White" BorderThickness="0"/>
         </StackPanel>
+
+        <TextBlock Text="Modo de ativação" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Como o atalho controla a gravação."
+                   Foreground="#9CA3AF" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+        <Border Background="#1E1E2A" CornerRadius="8" Padding="16">
+            <StackPanel>
+                <RadioButton x:Name="ToggleModeRadio" GroupName="HotkeyMode" Foreground="White"
+                             Checked="OnModeChanged" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="Alternar" FontWeight="SemiBold"/>
+                        <TextBlock Text="Pressiona para começar, pressiona de novo para parar."
+                                   Foreground="#9CA3AF" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="PushToTalkModeRadio" GroupName="HotkeyMode" Foreground="White"
+                             Checked="OnModeChanged">
+                    <StackPanel>
+                        <TextBlock Text="Segurar para falar" FontWeight="SemiBold"/>
+                        <TextBlock Text="Mantém pressionado enquanto fala, solta para parar."
+                                   Foreground="#9CA3AF" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </RadioButton>
+            </StackPanel>
+        </Border>
     </StackPanel>
 </Window>

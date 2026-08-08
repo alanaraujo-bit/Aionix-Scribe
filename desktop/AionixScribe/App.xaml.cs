@@ -8,6 +8,10 @@ namespace AionixScribe;
 public partial class App : System.Windows.Application
 {
     private HotkeyManager? _hotkey;
+    private PushToTalkHook? _pushToTalkHook;
+    private HotkeyMode _hotkeyMode = HotkeyMode.Toggle;
+    private uint _currentModifiers;
+    private uint _currentVk;
     private readonly AudioRecorder _recorder = new();
     private readonly BackendClient _backend = new();
     private OverlayWindow? _overlay;
@@ -42,7 +46,7 @@ public partial class App : System.Windows.Application
         SetupTrayIcon();
 
         var custom = HotkeySettings.LoadCustom();
-        if (custom != null && TryRegister(custom.Modifiers, custom.Vk, custom.Label))
+        if (custom != null && TryRegister(custom.Modifiers, custom.Vk, custom.Label, custom.Mode))
         {
             NotifyActiveHotkey();
             return;
@@ -55,7 +59,7 @@ public partial class App : System.Windows.Application
     {
         foreach (var (modifiers, vk, label) in HotkeyCandidates)
         {
-            if (TryRegister(modifiers, vk, label))
+            if (TryRegister(modifiers, vk, label, HotkeyMode.Toggle))
             {
                 NotifyActiveHotkey();
                 return;
@@ -69,23 +73,53 @@ public partial class App : System.Windows.Application
             Forms.ToolTipIcon.Warning);
     }
 
+    /// Cria o mecanismo do modo pedido ANTES de descartar o atual — se a criação lançar (conflito
+    /// de RegisterHotKey, ou falha ao instalar o hook), o mecanismo anterior continua funcionando.
+    private void RegisterCombo(uint modifiers, uint vk, HotkeyMode mode)
+    {
+        if (mode == HotkeyMode.Toggle)
+        {
+            var candidate = new HotkeyManager(modifiers, vk);
+            _hotkey?.Dispose();
+            _pushToTalkHook?.Dispose();
+            _pushToTalkHook = null;
+            _hotkey = candidate;
+            _hotkey.Triggered += OnHotkeyTriggered;
+        }
+        else
+        {
+            var candidate = new PushToTalkHook(modifiers, vk);
+            _hotkey?.Dispose();
+            _pushToTalkHook?.Dispose();
+            _hotkey = null;
+            _pushToTalkHook = candidate;
+            _pushToTalkHook.Pressed += OnPushToTalkPressed;
+            _pushToTalkHook.Released += OnPushToTalkReleased;
+        }
+    }
+
     /// Tenta registrar um combo, substituindo o atual se houver um. Não salva preferência —
     /// isso é responsabilidade de quem chama (settings salva, startup/fallback não salva).
-    private bool TryRegister(uint modifiers, uint vk, string label)
+    private bool TryRegister(uint modifiers, uint vk, string label, HotkeyMode mode)
     {
         try
         {
-            var newHotkey = new HotkeyManager(modifiers, vk);
-            _hotkey?.Dispose();
-            _hotkey = newHotkey;
-            _hotkey.Triggered += OnHotkeyTriggered;
-            CurrentHotkeyLabel = label;
-            return true;
+            RegisterCombo(modifiers, vk, mode);
         }
         catch (HotkeyConflictException)
         {
             return false;
         }
+        catch (PushToTalkHookException)
+        {
+            return false;
+        }
+
+        _hotkeyMode = mode;
+        _currentModifiers = modifiers;
+        _currentVk = vk;
+        CurrentHotkeyLabel = label;
+        return true;
     }
 
     private void NotifyActiveHotkey()
@@ -98,34 +132,71 @@ public partial class App : System.Windows.Application
     /// mantém o atalho anterior funcionando (não deixa o app sem nenhum atalho registrado).
     public bool TryChangeHotkey(uint modifiers, uint vk, string label, out string? error)
     {
-        var previousHotkey = _hotkey;
-        var previousLabel = CurrentHotkeyLabel;
         try
         {
-            var candidate = new HotkeyManager(modifiers, vk);
-            previousHotkey?.Dispose();
-            _hotkey = candidate;
-            _hotkey.Triggered += OnHotkeyTriggered;
-            CurrentHotkeyLabel = label;
-            HotkeySettings.SaveCustom(new HotkeyChoice(modifiers, vk, label));
-            _tray!.Text = $"Aionix Scribe — {CurrentHotkeyLabel}";
-            error = null;
-            return true;
+            RegisterCombo(modifiers, vk, _hotkeyMode);
         }
         catch (HotkeyConflictException ex)
         {
-            CurrentHotkeyLabel = previousLabel;
             error = ex.Message;
             return false;
         }
+        catch (PushToTalkHookException ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+
+        _currentModifiers = modifiers;
+        _currentVk = vk;
+        CurrentHotkeyLabel = label;
+        HotkeySettings.SaveCustom(new HotkeyChoice(modifiers, vk, label, _hotkeyMode));
+        _tray!.Text = $"Aionix Scribe — {CurrentHotkeyLabel}";
+        error = null;
+        return true;
+    }
+
+    /// Chamado pela SettingsWindow ao trocar entre Toggle e PushToTalk, mantendo o combo atual.
+    public bool TryChangeMode(HotkeyMode mode, out string? error)
+    {
+        if (mode == _hotkeyMode)
+        {
+            error = null;
+            return true;
+        }
+
+        try
+        {
+            RegisterCombo(_currentModifiers, _currentVk, mode);
+        }
+        catch (HotkeyConflictException ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+        catch (PushToTalkHookException ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+
+        _hotkeyMode = mode;
+        HotkeySettings.SaveCustom(new HotkeyChoice(_currentModifiers, _currentVk, CurrentHotkeyLabel, mode));
+        error = null;
+        return true;
     }
 
     public void ResetHotkeyToAuto()
     {
         _hotkey?.Dispose();
         _hotkey = null;
+        _pushToTalkHook?.Dispose();
+        _pushToTalkHook = null;
+        _hotkeyMode = HotkeyMode.Toggle;
         RegisterHotkeyWithFallback();
     }
+
+    public HotkeyMode CurrentHotkeyMode => _hotkeyMode;
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
@@ -187,6 +258,18 @@ public partial class App : System.Windows.Application
                 // Ignora nova ativação enquanto um processamento já está em andamento (§44).
                 break;
         }
+    }
+
+    private void OnPushToTalkPressed()
+    {
+        DebugLog.Write($"OnPushToTalkPressed, state={_state}");
+        if (_state == AppState.Idle) StartListening();
+    }
+
+    private async void OnPushToTalkReleased()
+    {
+        DebugLog.Write($"OnPushToTalkReleased, state={_state}");
+        if (_state == AppState.Listening) await StopAndProcessAsync();
     }
 
     private void StartListening()
@@ -357,6 +440,7 @@ public partial class App : System.Windows.Application
     protected override void OnExit(ExitEventArgs e)
     {
         _hotkey?.Dispose();
+        _pushToTalkHook?.Dispose();
         _recorder.Dispose();
         _backend.Dispose();
         _tray?.Dispose();

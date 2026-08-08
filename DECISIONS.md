@@ -120,4 +120,14 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Limitação conhecida e aceita**: isso não é autenticação de usuário/dispositivo — é um segredo de app cliente, extraível por quem descompilar o binário do Aionix Scribe. Eleva a barreira de "qualquer um que ache a URL via tráfego de rede" para "quem inspecionar o binário distribuído", o que é suficiente enquanto o app não tem distribuição pública em massa (ainda em P0-P2, sem instalador/P5). Não substitui contas reais (P3) — este item deve ser revisitado e removido/complementado quando entitlements por usuário existirem.
 - **Validado**: chamada sem header → `401`; chamada com header correto → passa da autenticação (erro 502 subsequente foi por áudio inválido de teste, não por auth). Desktop recompilado e relançado com o header.
 
+---
+
+## D014 — Push-to-talk via low-level keyboard hook (`WH_KEYBOARD_LL`)
+
+- **Contexto**: o modo toggle (`RegisterHotKey`) não avisa quando a tecla é solta, então push-to-talk (segurar para falar, soltar para parar) exige monitorar eventos de tecla diretamente — gap identificado desde o spike (D003) e citado em D010.
+- **Decisão**: `PushToTalkHook.cs` instala um hook `WH_KEYBOARD_LL` global, rastreia o estado de teclas pressionadas por conta própria (`HashSet<int>` de VKs, checando os dois lados de cada modificador — o hook só entrega `VK_LCONTROL`/`VK_RCONTROL` etc., nunca o genérico), dispara `Pressed`/`Released` e suprime o evento nativo enquanto o combo está ativo (mesmo comportamento de "não vaza pro app em foco" que `RegisterHotKey` já dava no toggle). O modo (Toggle/PushToTalk) é escolhido em `SettingsWindow` e persistido em `settings.json`, com retrocompatibilidade: arquivo antigo sem o campo carrega como Toggle.
+- **Padrão de troca segura**: `App.RegisterCombo` sempre constrói o novo mecanismo (HotkeyManager ou PushToTalkHook) antes de descartar o atual — se a criação falhar (conflito ou falha ao instalar o hook), o mecanismo anterior continua funcionando, mesmo princípio já usado em `TryChangeHotkey` (D012).
+- **Limitações conhecidas e aceitas**: combos interceptados pelo próprio Windows antes de qualquer hook em user-mode (Alt+Tab, Ctrl+Alt+Del, Win+L) não podem ser usados como push-to-talk — limitação do SO, não do código. A ordem de pressão importa (modificadores antes da tecla principal), espelhando o comportamento que o toggle já tinha.
+- **Validado ao vivo pelo proprietário**: segurar/soltar grava apenas durante o período pressionado; alternância entre os dois modos funciona sem deixar o app sem nenhum mecanismo de ativação registrado.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

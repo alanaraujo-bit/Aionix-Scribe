@@ -16,13 +16,13 @@ O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo propriet�
 - [x] `RegisterHotKey` com **fallback automático de conflito**: o primeiro combo padrão (Ctrl+Alt+Espaço) já estava em uso na máquina real do proprietário no primeiro teste — o app tenta uma cadeia de candidatos e usa o primeiro livre (atualmente resolveu para Ctrl+Alt+Shift+Espaço). UI para escolher/exibir o atalho manualmente ainda não existe (P2).
 - [x] Overlay com estados (ouvindo/processando/concluído/erro/cancelado) — versão visual mínima funcional; refinamento visual (§18, design system) é P2.
 - [ ] Tratamento robusto de "sem microfone disponível" — implementado de forma básica (try/catch com aviso), não testado em profundidade (só descoberto porque o ambiente de teste inicial não tinha microfone)
-- [ ] Push-to-talk (segurar/soltar) — versão atual é apenas toggle (aperta pra começar, aperta de novo pra parar), porque reaproveita `RegisterHotKey` (que não avisa quando a tecla é solta). Push-to-talk exigiria um low-level keyboard hook (`WH_KEYBOARD_LL`) à parte — ver ROADMAP P1.
+- [x] Push-to-talk (segurar/soltar) implementado como alternativa ao toggle — ver P1 abaixo e DECISIONS.md D014.
 
 ## P1 — Confiabilidade
 - [x] Tray icon básico (ícone genérico do sistema — ícone de marca é P2) com "Sair"; detecção de conflito de hotkey com fallback automático (ver DECISIONS.md D010)
 - [x] Idle CPU/RAM medidos de verdade: 133MB working set, 0% CPU idle (ver tabela de benchmark abaixo). Cold start ainda não medido.
 - [x] UI para configurar/exibir o atalho manualmente — `SettingsWindow` acessível pelo menu da bandeja, captura o atalho ao vivo (pressione as teclas), valida conflito antes de trocar, persiste em `%LOCALAPPDATA%\AionixScribe\settings.json`, com opção de restaurar o padrão automático. Validado ao vivo pelo proprietário.
-- [ ] Push-to-talk (segurar/soltar) via low-level keyboard hook, como alternativa ao toggle atual
+- [x] Push-to-talk (segurar/soltar) via low-level keyboard hook (`PushToTalkHook.cs`, `WH_KEYBOARD_LL`), como alternativa ao toggle atual — modo escolhido em Configurações ("Alternar"/"Segurar para falar"), persistido em `settings.json` com retrocompatibilidade (arquivo antigo sem o campo cai em Toggle). Validado ao vivo pelo proprietário: segurar/soltar grava só durante o período pressionado; alternar entre os dois modos funciona. Ver DECISIONS.md D014.
 - [x] Recuperação de falhas: falha técnica real → retry automático → preservação do áudio + reprocessamento manual pela bandeja (ver DECISIONS.md D010/D011, validado ao vivo com um bug real de produção)
 - [x] Tratamento de estados impossíveis: dupla ativação durante processamento é ignorada (`AppState.Processing` bloqueia novo trigger); handler global de exceção não derruba o app
 - [x] Tratamento de "nenhum microfone disponível": exceção específica (`NoMicrophoneException`) com mensagem clara em vez de erro técnico cru — descoberto e validado ao vivo (o headset do proprietário desconectou/dormiu no meio do teste, cenário real, não hipotético). Seleção manual entre múltiplos microfones ainda não existe (só usa o dispositivo padrão do Windows).

@@ -8,8 +8,8 @@ public sealed class HotkeyConflictException : Exception
 }
 
 /// Toggle mode: primeira pressionada inicia, segunda encerra. RegisterHotKey não fornece evento
-/// de "soltar tecla", então push-to-talk (segurar/soltar) exigiria um low-level keyboard hook
-/// (WH_KEYBOARD_LL) em vez disso — ver DECISIONS.md D0xx. Fica para uma iteração seguinte.
+/// de "soltar tecla" — push-to-talk (segurar/soltar) usa PushToTalkHook (WH_KEYBOARD_LL) em vez
+/// deste mecanismo, ver App.xaml.cs.
 public sealed class HotkeyManager : IDisposable
 {
     private const int HotkeyId = 1;
