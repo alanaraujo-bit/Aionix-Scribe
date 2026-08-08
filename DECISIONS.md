@@ -140,6 +140,6 @@ Formato: contexto → alternativas → decisão → razão → consequência.
   - **Inicialização**: `StartupSettings.cs` liga/desliga `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, funciona mesmo sem instalador (P5). Compara o caminho gravado com o caminho atual do executável para não mostrar "ativado" depois do app ser movido.
   - **Privacidade**: texto verificado contra o código real do backend (áudio processado em memória, nunca persistido em disco/banco) e lista onde os dados locais ficam, com botão para abrir a pasta.
 - **Refactor acompanhante**: `Theme.xaml` consolida a paleta de cores (antes hex duplicado em 4 arquivos XAML) em brushes nomeados na `Application.Resources`. Puramente mecânico — sem mudança visual — mas necessário antes de um tema Light/Dark real (ainda em aberto) para não multiplicar a duplicação.
-- **Validado**: build limpo, todas as chaves `StaticResource` conferidas manualmente contra as definidas em `Theme.xaml` (sem órfãs), app reaberto sem crash. Teste ao vivo das três novas seções (trocar microfone, ligar/desligar inicialização automática, abrir pasta de dados) pendente de confirmação do proprietário.
+- **Validado**: build limpo, todas as chaves `StaticResource` conferidas manualmente contra as definidas em `Theme.xaml` (sem órfãs), app reaberto sem crash. Teste ao vivo confirmado pelo proprietário: as três seções novas funcionam e nenhuma janela existente mudou visualmente após o refactor de tema.
 
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*
