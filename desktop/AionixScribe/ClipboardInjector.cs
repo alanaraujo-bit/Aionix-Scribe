@@ -1,5 +1,5 @@
 using WpfClipboard = System.Windows.Clipboard;
-using WpfDataObject = System.Windows.IDataObject;
+using WpfDataObject = System.Windows.DataObject;
 
 namespace AionixScribe;
 
@@ -12,10 +12,36 @@ public static class ClipboardInjector
 {
     public static async Task InsertTextAsync(string text)
     {
-        WpfDataObject? previous = null;
+        // Clipboard.GetDataObject() devolve um wrapper "vivo" sobre a fonte original (muitas apps
+        // usam delayed-rendering: só entregam os bytes quando GetData é chamado). Se apenas guardarmos
+        // essa referência e sobrescrevermos o clipboard com SetText, a fonte original pode ser
+        // invalidada e a restauração falha silenciosamente. Por isso copiamos cada formato para um
+        // DataObject novo AGORA, enquanto a fonte original ainda está viva.
+        WpfDataObject? snapshot = null;
         try
         {
-            previous = WpfClipboard.GetDataObject();
+            var previous = WpfClipboard.GetDataObject();
+            if (previous != null)
+            {
+                var formats = previous.GetFormats();
+                if (formats.Length > 0)
+                {
+                    snapshot = new WpfDataObject();
+                    foreach (var format in formats)
+                    {
+                        try
+                        {
+                            var data = previous.GetData(format);
+                            if (data != null) snapshot.SetData(format, data);
+                        }
+                        catch
+                        {
+                            // Formato individual pode falhar ao copiar (ex.: fonte de delayed-rendering
+                            // já indisponível) — ignora esse formato, mantém os demais.
+                        }
+                    }
+                }
+            }
         }
         catch
         {
@@ -27,11 +53,11 @@ public static class ClipboardInjector
         Native.SendCtrlV();
         await Task.Delay(150);
 
-        if (previous != null)
+        if (snapshot != null && snapshot.GetFormats().Length > 0)
         {
             try
             {
-                WpfClipboard.SetDataObject(previous, true);
+                WpfClipboard.SetDataObject(snapshot, true);
             }
             catch
             {

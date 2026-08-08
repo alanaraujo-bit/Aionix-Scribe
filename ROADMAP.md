@@ -10,9 +10,9 @@ O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo propriet�
 - [x] Spike técnico (hotkey/overlay/injeção) — ver DECISIONS.md D003
 - [x] Decisão de stack (D003): .NET 8 + WPF + Win32 P/Invoke; inserção via clipboard-paste
 - [x] Captura de áudio real via NAudio (`AudioRecorder.cs`, 16kHz mono PCM) — dispositivo padrão do sistema; seleção manual de microfone ainda não existe (P2/§29)
-- [x] Backend mínimo: proxy Gemini em produção (Railway, `aionix-scribe-api`). **Falta**: autenticação de dispositivo/usuário — endpoint ainda aceita chamadas sem auth; aceitável enquanto só o app oficial o chama, bloqueante antes de expor a usuários externos reais (P3)
+- [x] Backend mínimo: proxy Gemini em produção (Railway, `aionix-scribe-api`), agora com stopgap de autenticação (header `X-App-Secret`, ver DECISIONS.md D013) — endpoint público não aceita mais chamadas sem o segredo compartilhado. Autenticação de usuário/dispositivo real continua P3; o stopgap é suficiente até lá.
 - [x] Pipeline de limpeza/formatação validado com áudio sintetizado E com fala humana real ao vivo. Golden dataset (§25) ainda não construído — poucos casos manuais não são cobertura sistemática.
-- [x] Inserção via clipboard-paste (`ClipboardInjector.cs`) usando `System.Windows.Clipboard.GetDataObject()/SetDataObject()` — salva e restaura **todos os formatos presentes**, não só texto (resolve o gap identificado no spike)
+- [x] Inserção via clipboard-paste (`ClipboardInjector.cs`) usando `System.Windows.Clipboard.GetDataObject()/SetDataObject()` — salva e restaura **todos os formatos presentes**, não só texto (resolve o gap identificado no spike). Corrigido bug de restauração silenciosa: `GetDataObject()` retorna um wrapper vivo sobre a fonte original (delayed-rendering), então agora fazemos deep-copy de cada formato para um `DataObject` novo antes de sobrescrever o clipboard — validação com formato não-texto (imagem) pendente de confirmação ao vivo
 - [x] `RegisterHotKey` com **fallback automático de conflito**: o primeiro combo padrão (Ctrl+Alt+Espaço) já estava em uso na máquina real do proprietário no primeiro teste — o app tenta uma cadeia de candidatos e usa o primeiro livre (atualmente resolveu para Ctrl+Alt+Shift+Espaço). UI para escolher/exibir o atalho manualmente ainda não existe (P2).
 - [x] Overlay com estados (ouvindo/processando/concluído/erro/cancelado) — versão visual mínima funcional; refinamento visual (§18, design system) é P2.
 - [ ] Tratamento robusto de "sem microfone disponível" — implementado de forma básica (try/catch com aviso), não testado em profundidade (só descoberto porque o ambiente de teste inicial não tinha microfone)
@@ -29,7 +29,7 @@ O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo propriet�
 
 ## P2 — Produto
 - [x] Painel principal (`MainPanelWindow`): status do microfone (detecta ausência em tempo real), atalho ativo, últimas 5 transcrições, atalhos para Histórico/Configurações. Aberto por duplo-clique na bandeja ou menu "Abrir Aionix Scribe". Validado ao vivo.
-- [x] Histórico: `HistoryWindow` acessível pela bandeja, lista últimos ditados (até 200, `%LOCALAPPDATA%\AionixScribe\history.json`), copiar/excluir. Validado ao vivo. Pesquisa/filtro ainda não existe (só relevante quando o histórico crescer de verdade).
+- [x] Histórico: `HistoryWindow` acessível pela bandeja, lista últimos ditados (até 200, `%LOCALAPPDATA%\AionixScribe\history.json`), copiar/excluir/**limpar tudo** (com confirmação), local de armazenamento documentado na própria janela (§42 minimização/transparência de retenção). Validado ao vivo. Pesquisa/filtro ainda não existe (só relevante quando o histórico crescer de verdade).
 - [ ] Configurações (conta, áudio, atalhos, idioma, privacidade, inicialização) — hoje só tem atalho (P1/D012); conta/áudio/idioma/privacidade/inicialização faltam
 - [ ] Onboarding com primeira transcrição guiada
 - [ ] Temas Light/Dark completos (não é inversão de cor) — hoje só existe um tema escuro fixo nas janelas (overlay/settings/histórico)

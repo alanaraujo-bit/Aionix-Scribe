@@ -47,4 +47,22 @@ public partial class HistoryWindow : Window
         HistoryStore.Delete(id);
         Reload();
     }
+
+    private void OnClearAllClicked(object sender, RoutedEventArgs e)
+    {
+        if (HistoryStore.List().Count == 0) return;
+
+        var result = System.Windows.MessageBox.Show(
+            this,
+            "Apagar todo o histórico de ditados? Essa ação não pode ser desfeita.",
+            "Limpar histórico",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning);
+
+        if (result == System.Windows.MessageBoxResult.Yes)
+        {
+            HistoryStore.Clear();
+            Reload();
+        }
+    }
 }

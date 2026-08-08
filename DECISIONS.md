@@ -111,4 +111,13 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Achado paralelo real**: durante o teste, o headset do proprietário desconectou/entrou em suspensão (comportamento comum de headsets sem fio), e o app reportava um erro genérico de microfone. Confirmado com `WaveInEvent.DeviceCount == 0` que era uma ausência real de dispositivo, não um bug. Adicionada `NoMicrophoneException` com mensagem específica e acionável ("verifique se está conectado, ligado e não em suspensão") em vez de repassar a mensagem técnica crua da exceção do NAudio.
 - **Consequência**: seleção manual entre múltiplos microfones (quando há mais de um dispositivo) continua não implementada — hoje o app sempre usa o dispositivo padrão do Windows (índice 0 do NAudio). Fica para quando isso for um caso real relatado, não antes.
 
+---
+
+## D013 — Stopgap de autenticação no `/api/transcribe` (header compartilhado)
+
+- **Contexto**: `/api/transcribe` estava em produção sem nenhuma verificação — qualquer pessoa que descobrisse a URL pública (já hardcoded em `BackendClient.cs`, D010) podia queimar a cota da chave `GEMINI_API_KEY` sem limite. Contas/autenticação de usuário real é P3 e ainda não existe; esperar por isso deixaria o endpoint exposto por semanas.
+- **Decisão**: adicionado um shared secret (`DESKTOP_SHARED_SECRET`, 32 bytes aleatórios) verificado no header `X-App-Secret`. O backend rejeita com 401 qualquer chamada sem o header correto. O mesmo valor está embutido como constante em `BackendClient.cs` e configurado como variável de ambiente no Railway (nunca impresso em log/commit/resposta).
+- **Limitação conhecida e aceita**: isso não é autenticação de usuário/dispositivo — é um segredo de app cliente, extraível por quem descompilar o binário do Aionix Scribe. Eleva a barreira de "qualquer um que ache a URL via tráfego de rede" para "quem inspecionar o binário distribuído", o que é suficiente enquanto o app não tem distribuição pública em massa (ainda em P0-P2, sem instalador/P5). Não substitui contas reais (P3) — este item deve ser revisitado e removido/complementado quando entitlements por usuário existirem.
+- **Validado**: chamada sem header → `401`; chamada com header correto → passa da autenticação (erro 502 subsequente foi por áudio inválido de teste, não por auth). Desktop recompilado e relançado com o header.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

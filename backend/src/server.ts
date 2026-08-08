@@ -10,7 +10,15 @@ for (const mime of ["audio/wav", "audio/webm", "audio/mpeg", "audio/mp4", "audio
 
 app.get("/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
+// Stopgap enquanto não existe conta/dispositivo real (P3): sem isso, a URL pública do endpoint
+// permite que qualquer um queime a cota da Gemini. Não é autenticação de usuário de verdade.
+const desktopSharedSecret = process.env.DESKTOP_SHARED_SECRET;
+
 app.post("/api/transcribe", async (req, reply) => {
+  if (desktopSharedSecret && req.headers["x-app-secret"] !== desktopSharedSecret) {
+    return reply.code(401).send({ error: "Não autorizado" });
+  }
+
   const requestStart = performance.now();
   const mimeType = req.headers["content-type"];
   const body = req.body;

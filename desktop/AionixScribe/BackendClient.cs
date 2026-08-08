@@ -10,7 +10,19 @@ public sealed class BackendClient : IDisposable
 {
     // TODO(P3): mover para configuração por ambiente quando existir build de release separado de dev.
     private const string BaseUrl = "https://aionix-scribe-api-production.up.railway.app";
+
+    // Stopgap enquanto não existe conta/dispositivo real (P3): evita que a URL pública do endpoint
+    // seja usada por terceiros para queimar a cota da Gemini. Não é autenticação de usuário — o valor
+    // vive embutido no binário, mesma proteção que qualquer segredo de app cliente distribuído sem
+    // ofuscação. Precisa bater com DESKTOP_SHARED_SECRET no Railway (backend/.env.example).
+    private const string AppSecret = "0ae6425535c84a9b61bc006b35a5ce80485713bcfb41cca858cbbac4f1e2a476";
+
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
+
+    public BackendClient()
+    {
+        _http.DefaultRequestHeaders.Add("X-App-Secret", AppSecret);
+    }
 
     public async Task<TranscribeResponse> TranscribeAsync(byte[] wavAudio)
     {
