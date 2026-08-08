@@ -78,8 +78,10 @@ export function findPriceById(priceId: string): PriceDefinition | undefined {
   return PRICES.find((p) => p.priceId === priceId);
 }
 
-// Limite mensal de processamento do plano Essencial: AINDA NÃO DEFINIDO pelo proprietário.
-// Ver PENDENCIAS_USUARIO.md. Não hardcode um número aqui — leia de env var quando existir.
+// Limite mensal de processamento do plano Essencial: decisão comercial definitiva (ver DECISIONS.md D006).
+// 300 minutos / 5 horas por ciclo mensal, armazenado internamente em segundos.
+// Override via env var permitido para recalibração futura com base em uso/custo real — nunca espalhe
+// o número 18000 em outros pontos do código, sempre importe esta constante.
 export const ESSENCIAL_MONTHLY_QUOTA_SECONDS = process.env.ESSENCIAL_MONTHLY_QUOTA_SECONDS
   ? Number(process.env.ESSENCIAL_MONTHLY_QUOTA_SECONDS)
-  : null;
+  : 18_000;

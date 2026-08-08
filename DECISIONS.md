@@ -60,4 +60,26 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Decisão**: criado projeto Railway novo e dedicado `aionix-scribe`, com serviço `aionix-scribe-api` (Node/TS/Fastify, sem banco por enquanto — ver D004).
 - **Nota de segurança**: ao inspecionar "Aionix.Backup" para decidir se era reaproveitável, o comando `railway variables` expôs secrets reais desse outro projeto (JWT_SECRET, GOOGLE_CLIENT_SECRET, senha do Postgres) no output/transcript desta sessão. Não afeta o Aionix Scribe, mas foi registrado como recomendação de rotação em `PENDENCIAS_USUARIO.md` (item 6). Lição incorporada ao CLAUDE.md: preferir inspeção sem exposição de valores (nome do serviço, domínio, endpoint de health) antes de listar variáveis com valores.
 
+---
+
+## D006 — Quota do plano Essencial: 300 min (18.000s) por ciclo mensal
+
+- **Decisão do proprietário (definitiva)**: plano Essencial = 300 minutos (18.000 segundos) de processamento de voz por ciclo mensal, sem rollover. Premium e Ultra permanecem sem franquia mensal, sujeitos apenas a proteção razoável contra abuso/fraude.
+- **Implementação**: constante centralizada em `backend/src/config/tiers.ts` (`ESSENCIAL_MONTHLY_QUOTA_SECONDS = 18_000`, com override via env var para recalibração futura sem refactor).
+- **Regras de negócio a respeitar quando o sistema de consumo for implementado (P3)**: só contabilizar áudio efetivamente processado; cancelamento antes do processamento não consome quota; falhas técnicas (rede/infra/provedor) não consomem quota; retries idempotentes (nunca descontar duas vezes); reset pelo ciclo real de assinatura (não mês civil); avisos em ~80%/~95%/100%; bloqueio de novos processamentos no Essencial ao atingir 100%, com oferta de upgrade.
+- **Consequência**: como ainda não há persistência (D004 adiou banco de dados para quando entitlements/histórico exigirem), a contagem de consumo em si ainda não está implementada — só a constante de configuração. Ver ROADMAP.md P3 para a lista completa de regras a implementar.
+
+## D007 — Conta Vercel confirmada: `alanarauj0` / time `Aionixdev`
+
+- **Decisão do proprietário (definitiva)**: a conta Vercel CLI já autenticada (`alanarauj0`) e o time `Aionixdev` são o destino correto para os workloads web do Aionix Scribe (landing page, P6). Não requer nova confirmação.
+
+## D008 — Code signing do instalador Windows: dispensado nesta etapa
+
+- **Decisão do proprietário (definitiva)**: não adquirir/configurar certificado de assinatura de código agora. Isso não impede considerar o Aionix Scribe concluído nas fases atuais — builds não assinados (com aviso de "editor desconhecido" do SmartScreen) são aceitáveis até segunda ordem.
+- **Consequência para o pipeline de build (P5)**: estruturar o processo de build/instalador de forma que a assinatura possa ser adicionada depois sem grande refatoração (ex.: um passo de assinatura opcional e isolado no pipeline), mas sem tratar a ausência de certificado como bloqueio de qualquer fase.
+
+## D009 — Escopo de infraestrutura: exclusivamente Aionix Scribe
+
+- **Decisão do proprietário (definitiva)**: ao operar contas com múltiplos projetos (Railway, Vercel, etc.), listar recursos apenas o necessário para localizar/criar a infraestrutura do Aionix Scribe. Nunca investigar, auditar, modificar ou fazer recomendações sobre outros projetos do proprietário (ex.: Aionix.Backup) — mesmo que algo pareça digno de nota. Ver também a seção "Infraestrutura: política Remote-First" em `CLAUDE.md`.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

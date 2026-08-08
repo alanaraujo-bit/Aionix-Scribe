@@ -12,7 +12,6 @@ Hierarquia de valor (não é uma sequência rígida de datas). Cada fase só é 
 - [ ] Inserção do texto resultante no campo de origem via colagem de clipboard (save/restore de **todos os formatos presentes**, não só texto — a implementação do spike só cobria `CF_UNICODETEXT`; um usuário com imagem/arquivo copiado não pode perdê-lo a cada ditado)
 - [x] `RegisterHotKey` com detecção de conflito real (retorno `false`) — validado no spike (ver DECISIONS.md D003); falta expor ao usuário final na UI real (não é mais problema técnico, é UX)
 - [ ] Overlay comunica estados: ativando/ouvindo/gravando/processando/concluído/erro/cancelado
-- **Bloqueio conhecido**: validação end-to-end de transcrição real depende de `GEMINI_API_KEY` (ver PENDENCIAS_USUARIO.md #1)
 
 ## P1 — Confiabilidade
 - [ ] Execução em background (tray) leve, idle CPU/RAM baixos
@@ -30,8 +29,17 @@ Hierarquia de valor (não é uma sequência rígida de datas). Cada fase só é 
 ## P3 — Plataforma SaaS
 - [ ] Contas e autenticação
 - [ ] Entitlements (Essential/Premium/Ultra) como fonte única de verdade
-- [ ] Stripe: checkout, customer portal, webhooks, upgrade/downgrade/cancelamento
-- [ ] Consumo/limites (valor exato do limite Essencial: ver PENDENCIAS_USUARIO.md #4)
+- [ ] Stripe: checkout, customer portal, upgrade/downgrade/cancelamento
+- [ ] Webhook Stripe: implementar endpoint público, deployar, registrar no Stripe TEST, obter/configurar `STRIPE_WEBHOOK_SECRET` no Railway (secret, nunca em código/git/logs), validar assinatura, idempotência, e os eventos de subscription criada/atualizada/cancelada/renovada/pagamento falhado com sincronização de entitlement. Tarefa de engenharia normal — não é pendência do proprietário.
+- [ ] Quota do plano Essencial — **decisão comercial definitiva (ver DECISIONS.md D006)**: 300 minutos (18.000s) por ciclo mensal, armazenados internamente em segundos, exibidos ao usuário em minutos/horas. Regras a implementar:
+  - contabilizar somente áudio efetivamente processado (cancelamento antes do processamento não consome quota);
+  - falha técnica (rede, infra, provedor) não consome quota; retries devem ser idempotentes, nunca descontando duas vezes o mesmo processamento;
+  - reset baseado no ciclo real de assinatura (não mês civil), sem rollover;
+  - UI mostra: consumido, saldo restante, percentual, data de renovação;
+  - avisos em ~80%, ~95% e 100% de uso; ao atingir 100%, bloquear novos processamentos no Essencial e oferecer upgrade;
+  - Premium/Ultra sem franquia mensal, sujeitos apenas a proteção razoável contra abuso/fraude;
+  - manter métricas de uso para recalibrar o limite futuramente com base em custo real;
+  - valor `18000` centralizado em uma única constante de configuração (`backend/src/config/tiers.ts`), nunca espalhado pelo código.
 
 ## P4 — Inteligência avançada
 - [ ] Vocabulário personalizado (nomes, termos técnicos)
