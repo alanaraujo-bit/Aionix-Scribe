@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
@@ -21,6 +22,7 @@ public partial class App : System.Windows.Application
     private SettingsWindow? _settingsWindow;
     private HistoryWindow? _historyWindow;
     private MainPanelWindow? _mainPanel;
+    private bool? _appliedLightTheme;
 
     private enum AppState { Idle, Listening, Processing }
     private AppState _state = AppState.Idle;
@@ -50,8 +52,10 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ApplyTheme(); // primeiro, antes de qualquer janela (onboarding pode abrir logo em seguida)
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         DispatcherUnhandledException += OnDispatcherUnhandledException;
+        SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
 
         SetupTrayIcon();
 
@@ -73,6 +77,44 @@ public partial class App : System.Windows.Application
     {
         if (OnboardingSettings.IsCompleted()) return;
         new OnboardingWindow().Show();
+    }
+
+    /// Resolve o tema efetivo (preferência do usuário + Windows quando "Sistema") e troca o
+    /// dicionário mesclado em Application.Resources. Chamado no startup, sempre que a preferência
+    /// muda em Configurações, e (se a preferência for Sistema) quando o Windows muda de tema.
+    /// Janelas usam DynamicResource para os brushes de Theme.*.xaml, então a troca aparece nelas
+    /// imediatamente, sem recriar nada.
+    public void ApplyTheme()
+    {
+        var preference = ThemeSettings.Load();
+        var useLight = preference switch
+        {
+            ThemePreference.Light => true,
+            ThemePreference.Dark => false,
+            _ => ThemeSettings.IsWindowsLightThemeActive(),
+        };
+
+        if (_appliedLightTheme == useLight) return; // evita reflow/flicker ao reaplicar o mesmo tema
+
+        var dictionary = new ResourceDictionary
+        {
+            Source = new Uri(useLight ? "Theme.Light.xaml" : "Theme.Dark.xaml", UriKind.Relative)
+        };
+        Resources.MergedDictionaries.Clear();
+        Resources.MergedDictionaries.Add(dictionary);
+        _appliedLightTheme = useLight;
+    }
+
+    /// SystemEvents dispara em thread própria, não na do Dispatcher — nunca tocar em
+    /// Application.Resources direto aqui. Não filtramos por e.Category porque a categoria usada
+    /// para notificar troca de tema claro/escuro varia entre versões do Windows; ApplyTheme já
+    /// ignora chamadas que não mudam o tema resolvido, então um evento não relacionado é barato.
+    private void OnSystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (ThemeSettings.Load() == ThemePreference.System) ApplyTheme();
+        });
     }
 
     private void RegisterHotkeyWithFallback()
@@ -466,6 +508,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged; // evento estático — sem isso, vaza e pode estourar no shutdown
         _hotkey?.Dispose();
         _pushToTalkHook?.Dispose();
         _recorder.Dispose();

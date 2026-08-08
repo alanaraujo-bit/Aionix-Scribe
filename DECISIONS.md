@@ -152,4 +152,18 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Fechar sempre marca como visto**: "Pular", "Concluir" e o X da janela convergem no mesmo `Closed` → `OnboardingSettings.MarkCompleted()` — decisão deliberada para não forçar ninguém a completar o fluxo, mas também não reaparecer a cada abertura do app só porque o usuário nunca clicou em nada.
 - **Validado ao vivo pelo proprietário**: janela abriu na primeira execução real, mudou para o estado de sucesso após um ditado real, e não reapareceu numa reabertura seguinte do app.
 
+---
+
+## D017 — Tema Light/Dark completo (último item de P2)
+
+- **Contexto**: §36 da diretiva mestre proíbe explicitamente tratar Light Mode como inversão mecânica do Dark Mode. Esse era o último item aberto do P2; P6 (landing page) está gated em "P0-P2 maduros" no roadmap.
+- **Decisão**: `Theme.Dark.xaml` preserva exatamente os valores já validados ao vivo (nenhuma mudança); `Theme.Light.xaml` é uma paleta desenhada com critérios próprios, documentados inline no arquivo:
+  - Elevação de superfície sobe na mesma direção (card mais claro que a janela) a partir de um ponto de partida diferente — card vai a branco puro em vez de "mais um degrau de cinza".
+  - Cores de estado (sucesso/erro/aviso) não são os mesmos tons pastel do escuro — viraram versões mais saturadas/escuras, calibradas por contraste (WCAG) para igualar ou superar o contraste que a versão escura tem no fundo escuro.
+  - Hierarquia de texto (muted mais proeminente que footnote) preservada como *relação*, não como valor — no escuro "mais proeminente" = mais claro, no claro = mais escuro.
+  - Botões continuam um "chip" escuro preenchido com texto claro nos dois temas — decisão deliberada de manter isso como elemento de identidade, não uma sobra do modo escuro.
+- **Troca em tempo real**: todas as 5 janelas passaram de `StaticResource` para `DynamicResource`; `App.ApplyTheme()` troca `Application.Resources.MergedDictionaries` (não recria janelas). Modo "Sistema" lê `HKCU\...\Themes\Personalize\AppsUseLightTheme` e observa `SystemEvents.UserPreferenceChanged` pra acompanhar uma troca de tema do Windows enquanto o app está aberto.
+- **Corrigido no mesmo lote** (achado pelo Advisor antes de começar): `OverlayWindow.SetState`/`MainPanelWindow.Refresh` setavam cor via hex literal em código, ignorando qualquer dicionário de tema — corrigido para `FindResource` antes desta feature ser construída, senão o dot do overlay/mic ficaria preso à cor escura mesmo em tema claro.
+- **Validado**: build limpo, todas as chaves conferidas manualmente entre os dois arquivos de tema (idênticas, sem órfãs), nenhum `StaticResource` remanescente, app reaberto sem erro. **Validação visual ao vivo (as duas paletas, a troca em tempo real, e o modo Sistema) ainda pendente do proprietário** — é o tipo de coisa que só existe de verdade quando alguém vê na tela.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

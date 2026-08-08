@@ -4,6 +4,8 @@
     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#14141E"/>
     <SolidColorBrush x:Key="CardBackgroundBrush" Color="#1E1E2A"/>
     <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#2D2D3D"/>
+    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="MutedTextBrush" Color="#9CA3AF"/>
     <SolidColorBrush x:Key="SuccessBrush" Color="#4ADE80"/>
     <SolidColorBrush x:Key="ErrorBrush" Color="#F87171"/>
@@ -11,7 +13,8 @@
     <SolidColorBrush x:Key="FootnoteTextBrush" Color="#6B7280"/>
 
     <!-- Chrome semi-transparente do overlay flutuante (não são cores de estado de gravação — o
-         estado é a cor do StatusDot, ex. SuccessBrush/ErrorBrush). Alfa preservado (8 dígitos). -->
+         estado é a cor do StatusDot, ex. SuccessBrush/ErrorBrush). Alfa preservado (8 dígitos).
+         Valores idênticos ao Theme.xaml original — tema escuro já validado ao vivo, não mudou. -->
     <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#E6141420"/>
     <SolidColorBrush x:Key="OverlayBorderBrush" Color="#332A2A3A"/>
 

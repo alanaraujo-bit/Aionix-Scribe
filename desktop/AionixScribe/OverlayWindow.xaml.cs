@@ -45,7 +45,7 @@ public partial class OverlayWindow : Window
         Dispatcher.InvokeAsync(PositionBottomCenter);
     }
 
-    // Via FindResource (não hex literal) para que o dot responda a uma troca de tema em Theme.xaml
-    // em vez de ficar preso à cor do modo escuro.
+    // Via FindResource (não hex literal) para que o dot responda a uma troca do dicionário de tema
+    // (Theme.Dark.xaml/Theme.Light.xaml, ver App.ApplyTheme) em vez de ficar preso a uma cor fixa.
     private System.Windows.Media.Brush Brush(string resourceKey) => (System.Windows.Media.Brush)FindResource(resourceKey);
 }

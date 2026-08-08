@@ -15,6 +15,7 @@ public partial class SettingsWindow : Window
     private bool _initializingMode;
     private bool _initializingMicrophone;
     private bool _initializingStartup;
+    private bool _initializingTheme;
 
     public SettingsWindow()
     {
@@ -23,7 +24,33 @@ public partial class SettingsWindow : Window
         RefreshModeSelection();
         RefreshMicrophoneList();
         RefreshStartupState();
+        RefreshThemeSelection();
         PreviewKeyDown += OnPreviewKeyDown;
+    }
+
+    // Reaplicar "Sistema" toda vez que a janela abre cobre o caso de o usuário ter trocado o tema
+    // do Windows enquanto o app não estava com Configurações aberta — App já observa
+    // SystemEvents.UserPreferenceChanged em tempo real, então isso aqui é só reforço na abertura.
+    private void RefreshThemeSelection()
+    {
+        _initializingTheme = true;
+        var preference = ThemeSettings.Load();
+        SystemThemeRadio.IsChecked = preference == ThemePreference.System;
+        LightThemeRadio.IsChecked = preference == ThemePreference.Light;
+        DarkThemeRadio.IsChecked = preference == ThemePreference.Dark;
+        _initializingTheme = false;
+    }
+
+    private void OnThemeChanged(object sender, RoutedEventArgs e)
+    {
+        if (_initializingTheme) return;
+
+        var preference = ReferenceEquals(sender, LightThemeRadio) ? ThemePreference.Light
+            : ReferenceEquals(sender, DarkThemeRadio) ? ThemePreference.Dark
+            : ThemePreference.System;
+
+        ThemeSettings.Save(preference);
+        ((App)System.Windows.Application.Current).ApplyTheme();
     }
 
     private void RefreshMicrophoneList()

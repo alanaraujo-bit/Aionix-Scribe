@@ -1,11 +1,10 @@
 <Application x:Class="AionixScribe.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Vazio de propósito: o dicionário de tema (claro/escuro) é escolhido em runtime por
+         App.ApplyTheme, chamado logo no início de OnStartup, com base em ThemeSettings +
+         Windows. Deixar um MergedDictionaries fixo aqui reintroduziria um tema hardcoded. -->
     <Application.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Theme.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
+        <ResourceDictionary/>
     </Application.Resources>
 </Application>

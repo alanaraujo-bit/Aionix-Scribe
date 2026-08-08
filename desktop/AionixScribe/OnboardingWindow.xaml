@@ -4,14 +4,14 @@
         Title="Bem-vindo ao Aionix Scribe"
         Width="440" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource WindowBackgroundBrush}"
-        Foreground="White"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="Segoe UI"
         ResizeMode="CanMinimize"
         Closed="OnWindowClosed">
     <StackPanel Margin="24">
         <TextBlock Text="Aionix Scribe" FontSize="22" FontWeight="Bold" Margin="0,0,0,2"/>
-        <TextBlock Text="Falar é uma forma superior de digitar." Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,0,0,20"/>
+        <TextBlock Text="Falar é uma forma superior de digitar." Foreground="{DynamicResource MutedTextBrush}" FontSize="12" Margin="0,0,0,20"/>
 
         <StackPanel x:Name="WelcomePanel">
             <TextBlock Text="Vamos fazer seu primeiro ditado" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
@@ -21,7 +21,7 @@
                 <Run x:Name="HotkeyRun" FontWeight="Bold"/>
                 <Run Text=". Ele inicia e encerra o ditado em qualquer lugar do Windows."/>
             </TextBlock>
-            <TextBlock x:Name="HasHotkeyDetailText" TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,20">
+            <TextBlock x:Name="HasHotkeyDetailText" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource MutedTextBrush}" Margin="0,0,0,20">
                 <Run Text="Abra o Bloco de Notas, o navegador ou qualquer campo de texto, pressione o atalho, fale uma frase e veja o texto aparecer sozinho."/>
             </TextBlock>
 
@@ -31,33 +31,33 @@
                 <Run Text=" e escolha um atalho livre antes de continuar."/>
             </TextBlock>
 
-            <Border x:Name="WaitingCard" Background="{StaticResource CardBackgroundBrush}" CornerRadius="10" Padding="14" Margin="0,0,0,20">
+            <Border x:Name="WaitingCard" Background="{DynamicResource CardBackgroundBrush}" CornerRadius="10" Padding="14" Margin="0,0,0,20">
                 <StackPanel Orientation="Horizontal">
-                    <Ellipse x:Name="WaitingDot" Width="10" Height="10" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Ellipse x:Name="WaitingDot" Width="10" Height="10" Fill="{DynamicResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock x:Name="WaitingText" Text="Aguardando seu primeiro ditado..." VerticalAlignment="Center" FontSize="13"/>
                 </StackPanel>
             </Border>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button x:Name="OpenSettingsButton" Content="Abrir Configurações" Padding="12,6" Margin="0,0,8,0"
-                        Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0"
+                        Background="{DynamicResource ButtonBackgroundBrush}" Foreground="{DynamicResource ButtonForegroundBrush}" BorderThickness="0"
                         Click="OnOpenSettingsClicked" Visibility="Collapsed"/>
                 <Button Content="Pular" Padding="12,6"
-                        Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0" Click="OnSkipClicked"/>
+                        Background="{DynamicResource ButtonBackgroundBrush}" Foreground="{DynamicResource ButtonForegroundBrush}" BorderThickness="0" Click="OnSkipClicked"/>
             </StackPanel>
         </StackPanel>
 
         <StackPanel x:Name="SuccessPanel" Visibility="Collapsed">
             <TextBlock Text="Funcionou! Foi só isso." FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
-            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource MutedTextBrush}" Margin="0,0,0,20">
+            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource MutedTextBrush}" Margin="0,0,0,20">
                 <Run Text="Sempre que precisar ditar, use "/>
-                <Run x:Name="HotkeyRunSuccess" FontWeight="Bold" Foreground="White"/>
+                <Run x:Name="HotkeyRunSuccess" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                 <Run Text=" em qualquer aplicativo. O histórico dos seus ditados fica disponível no painel principal."/>
             </TextBlock>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Concluir" Padding="12,6"
-                        Background="{StaticResource ButtonBackgroundBrush}" Foreground="White" BorderThickness="0" Click="OnFinishClicked"/>
+                        Background="{DynamicResource ButtonBackgroundBrush}" Foreground="{DynamicResource ButtonForegroundBrush}" BorderThickness="0" Click="OnFinishClicked"/>
             </StackPanel>
         </StackPanel>
     </StackPanel>
