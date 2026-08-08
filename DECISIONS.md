@@ -142,4 +142,14 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Refactor acompanhante**: `Theme.xaml` consolida a paleta de cores (antes hex duplicado em 4 arquivos XAML) em brushes nomeados na `Application.Resources`. Puramente mecânico — sem mudança visual — mas necessário antes de um tema Light/Dark real (ainda em aberto) para não multiplicar a duplicação.
 - **Validado**: build limpo, todas as chaves `StaticResource` conferidas manualmente contra as definidas em `Theme.xaml` (sem órfãs), app reaberto sem crash. Teste ao vivo confirmado pelo proprietário: as três seções novas funcionam e nenhuma janela existente mudou visualmente após o refactor de tema.
 
+---
+
+## D016 — Onboarding guiado até a primeira transcrição real
+
+- **Contexto**: benchmark competitivo (Wispr Flow) apontou onboarding "polido" como ponto forte deles; o Aionix Scribe não tinha nenhum até agora — usuário novo só descobria o atalho por um balão de notificação.
+- **Decisão**: `OnboardingWindow` abre automaticamente só na primeira execução (`OnboardingSettings`/`onboarding.json`), mostra o atalho ativo de verdade (não texto fixo) e espera a primeira transcrição real bem-sucedida — sinalizada por um evento novo, `App.DictationSucceeded`, disparado só quando texto de verdade foi inserido (não para "nenhuma fala detectada"). Ao detectar sucesso, a janela troca para uma tela de confirmação. Não é modal (`Show()`, não `ShowDialog()`) — o usuário pode ignorá-la e usar o app normalmente.
+- **Caso de borda coberto**: se todos os candidatos de atalho conflitarem e nenhum registrar (`HasActiveHotkey == false`, novo em `App`), a janela troca a mensagem para direcionar à tela de Configurações em vez de mostrar um atalho inexistente.
+- **Fechar sempre marca como visto**: "Pular", "Concluir" e o X da janela convergem no mesmo `Closed` → `OnboardingSettings.MarkCompleted()` — decisão deliberada para não forçar ninguém a completar o fluxo, mas também não reaparecer a cada abertura do app só porque o usuário nunca clicou em nada.
+- **Validado ao vivo pelo proprietário**: janela abriu na primeira execução real, mudou para o estado de sucesso após um ditado real, e não reapareceu numa reabertura seguinte do app.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

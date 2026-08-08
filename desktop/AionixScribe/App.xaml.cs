@@ -27,6 +27,16 @@ public partial class App : System.Windows.Application
 
     public string CurrentHotkeyLabel { get; private set; } = "nenhum atalho ativo";
 
+    /// False apenas quando todos os candidatos de atalho conflitam e nenhum ficou registrado
+    /// (RegisterHotkeyWithFallback esgotado). OnboardingWindow usa isso em vez de comparar contra
+    /// o texto de CurrentHotkeyLabel.
+    public bool HasActiveHotkey { get; private set; }
+
+    /// Disparado quando uma transcrição real resulta em texto inserido com sucesso (não para
+    /// "nenhuma fala detectada"). Consumido pela OnboardingWindow para saber quando o primeiro
+    /// ditado do usuário deu certo.
+    public event Action<string>? DictationSucceeded;
+
     // Candidatos tentados em ordem até um registrar sem conflito, quando não há preferência
     // salva pelo usuário (ver HotkeySettings / SettingsWindow, DECISIONS.md D010).
     private static readonly (uint Modifiers, uint Vk, string Label)[] HotkeyCandidates =
@@ -49,10 +59,20 @@ public partial class App : System.Windows.Application
         if (custom != null && TryRegister(custom.Modifiers, custom.Vk, custom.Label, custom.Mode))
         {
             NotifyActiveHotkey();
+            MaybeShowOnboarding();
             return;
         }
 
         RegisterHotkeyWithFallback();
+        MaybeShowOnboarding();
+    }
+
+    /// Não usa ShowDialog — o onboarding é uma janela comum, o usuário pode ignorá-la e continuar
+    /// usando o app enquanto ela espera a primeira transcrição bem-sucedida.
+    private void MaybeShowOnboarding()
+    {
+        if (OnboardingSettings.IsCompleted()) return;
+        new OnboardingWindow().Show();
     }
 
     private void RegisterHotkeyWithFallback()
@@ -66,6 +86,7 @@ public partial class App : System.Windows.Application
             }
         }
 
+        HasActiveHotkey = false;
         CurrentHotkeyLabel = "sem atalho disponível";
         _tray!.Text = "Aionix Scribe — sem atalho disponível";
         _tray!.ShowBalloonTip(8000, "Aionix Scribe",
@@ -119,6 +140,7 @@ public partial class App : System.Windows.Application
         _currentModifiers = modifiers;
         _currentVk = vk;
         CurrentHotkeyLabel = label;
+        HasActiveHotkey = true;
         return true;
     }
 
@@ -150,6 +172,7 @@ public partial class App : System.Windows.Application
         _currentModifiers = modifiers;
         _currentVk = vk;
         CurrentHotkeyLabel = label;
+        HasActiveHotkey = true;
         HotkeySettings.SaveCustom(new HotkeyChoice(modifiers, vk, label, _hotkeyMode));
         _tray!.Text = $"Aionix Scribe — {CurrentHotkeyLabel}";
         error = null;
@@ -352,6 +375,7 @@ public partial class App : System.Windows.Application
                 await ClipboardInjector.InsertTextAsync(result.Text);
                 UpdateOverlay(OverlayState.Done);
                 HistoryStore.Add(result.Text);
+                DictationSucceeded?.Invoke(result.Text);
             }
             return true;
         }

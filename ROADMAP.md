@@ -35,7 +35,7 @@ O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo propriet�
 - [x] Configurações → Privacidade: texto real (não placeholder) sobre o que acontece com o áudio (processado em memória no backend, nunca salvo lá) e onde os dados locais ficam, com botão "Abrir pasta de dados". Validado ao vivo.
 - [ ] Configurações → Conta / Idioma — propositalmente **não construídas ainda**: dependem de P3 (contas/auth) e suporte multi-idioma real, que não existem; adicionar agora seria UI sem funcionalidade real por trás (proibido pelas regras do projeto).
 - [x] Paleta de cores extraída para `Theme.xaml` (recurso compartilhado da `Application`) — as 4 janelas (overlay/histórico/painel/configurações) usam os mesmos brushes nomeados em vez de hex duplicado; sem mudança visual, só consolidação para quando o tema Light/Dark real for construído.
-- [ ] Onboarding com primeira transcrição guiada
+- [x] Onboarding com primeira transcrição guiada (`OnboardingWindow`): abre automaticamente só na primeira vez que o app roda, mostra o atalho ativo de verdade, aguarda a primeira transcrição real bem-sucedida (evento `App.DictationSucceeded`) e muda para uma tela de confirmação; cobre também o caso de nenhum atalho ter conseguido registrar (direciona pra Configurações). "Pular"/"Concluir"/fechar pelo X marcam como visto (`onboarding.json`), nunca reaparece depois. Validado ao vivo.
 - [ ] Temas Light/Dark completos (não é inversão de cor) — hoje só existe um tema escuro fixo nas janelas (overlay/settings/histórico)
 
 ## P3 — Plataforma SaaS
