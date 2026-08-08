@@ -3,21 +3,29 @@
 Hierarquia de valor (não é uma sequência rígida de datas). Cada fase só é "concluída" quando passa pelos quality gates do CLAUDE.md/diretiva mestre (funcional, testado, sem placeholder, sem mock em produção, sem secret exposto).
 
 ## P0 — Experiência essencial (capturar → compreender → formatar → inserir)
-**Status: em andamento**
-- [x] Spike: hotkey global + overlay always-on-top sem roubo de foco + injeção de texto (Notepad, browser, VS Code testados; Windows Terminal inconclusivo; janela elevada requer verificação manual — ver DECISIONS.md D003)
-- [x] Decisão de stack final registrada em DECISIONS.md (D003): .NET 8 + WPF + Win32 P/Invoke; inserção de texto via clipboard-paste (não keystroke simulation)
-- [ ] Captura de áudio (seleção de microfone, start/stop)
-- [x] Backend mínimo: proxy Gemini deployado em produção real (Railway, projeto `aionix-scribe`, serviço `aionix-scribe-api`, `https://aionix-scribe-api-production.up.railway.app`). Endpoint `/api/transcribe` validado com áudio PT-BR real. **Falta**: autenticação de dispositivo/usuário (ainda aceita chamadas sem auth — aceitável enquanto só o backend interno chama, mas bloqueante antes de expor a URL a usuários reais)
-- [x] Pipeline: áudio → transcrição → limpeza (hesitações/repetições) → pontuação/formatação — validado com um caso real (frase com hesitação "deixa eu pensar" removida corretamente, acentuação adicionada, intenção preservada). Golden dataset (§25) ainda não construído — um caso não é cobertura.
-- [ ] Inserção do texto resultante no campo de origem via colagem de clipboard (save/restore de **todos os formatos presentes**, não só texto — a implementação do spike só cobria `CF_UNICODETEXT`; um usuário com imagem/arquivo copiado não pode perdê-lo a cada ditado)
-- [x] `RegisterHotKey` com detecção de conflito real (retorno `false`) — validado no spike (ver DECISIONS.md D003); falta expor ao usuário final na UI real (não é mais problema técnico, é UX)
-- [ ] Overlay comunica estados: ativando/ouvindo/gravando/processando/concluído/erro/cancelado
+**Status: fluxo essencial funcionando ponta a ponta, validado com voz humana real em 2026-08-08**
+
+O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo proprietário: atalho global → gravação real via microfone (NAudio) → backend em produção (Railway) → Gemini real → texto limpo → colagem via clipboard no campo em foco. Funcionou de primeira no teste manual.
+
+- [x] Spike técnico (hotkey/overlay/injeção) — ver DECISIONS.md D003
+- [x] Decisão de stack (D003): .NET 8 + WPF + Win32 P/Invoke; inserção via clipboard-paste
+- [x] Captura de áudio real via NAudio (`AudioRecorder.cs`, 16kHz mono PCM) — dispositivo padrão do sistema; seleção manual de microfone ainda não existe (P2/§29)
+- [x] Backend mínimo: proxy Gemini em produção (Railway, `aionix-scribe-api`). **Falta**: autenticação de dispositivo/usuário — endpoint ainda aceita chamadas sem auth; aceitável enquanto só o app oficial o chama, bloqueante antes de expor a usuários externos reais (P3)
+- [x] Pipeline de limpeza/formatação validado com áudio sintetizado E com fala humana real ao vivo. Golden dataset (§25) ainda não construído — poucos casos manuais não são cobertura sistemática.
+- [x] Inserção via clipboard-paste (`ClipboardInjector.cs`) usando `System.Windows.Clipboard.GetDataObject()/SetDataObject()` — salva e restaura **todos os formatos presentes**, não só texto (resolve o gap identificado no spike)
+- [x] `RegisterHotKey` com **fallback automático de conflito**: o primeiro combo padrão (Ctrl+Alt+Espaço) já estava em uso na máquina real do proprietário no primeiro teste — o app tenta uma cadeia de candidatos e usa o primeiro livre (atualmente resolveu para Ctrl+Alt+Shift+Espaço). UI para escolher/exibir o atalho manualmente ainda não existe (P2).
+- [x] Overlay com estados (ouvindo/processando/concluído/erro/cancelado) — versão visual mínima funcional; refinamento visual (§18, design system) é P2.
+- [ ] Tratamento robusto de "sem microfone disponível" — implementado de forma básica (try/catch com aviso), não testado em profundidade (só descoberto porque o ambiente de teste inicial não tinha microfone)
+- [ ] Push-to-talk (segurar/soltar) — versão atual é apenas toggle (aperta pra começar, aperta de novo pra parar), porque reaproveita `RegisterHotKey` (que não avisa quando a tecla é solta). Push-to-talk exigiria um low-level keyboard hook (`WH_KEYBOARD_LL`) à parte — ver ROADMAP P1.
 
 ## P1 — Confiabilidade
-- [ ] Execução em background (tray) leve, idle CPU/RAM baixos
-- [ ] Hotkey configurável + detecção de conflito
-- [ ] Recuperação de falhas: rede cai, API erra, crash, timeout — preservar áudio para retry
-- [ ] Tratamento de estados impossíveis (dupla ativação, hotkey durante processamento, troca de janela)
+- [x] Tray icon básico (ícone genérico do sistema — ícone de marca é P2) com "Sair"; detecção de conflito de hotkey com fallback automático já implementado (ver DECISIONS.md D010)
+- [ ] Execução em background leve, medir idle CPU/RAM de verdade (ainda não medido)
+- [ ] UI para configurar/exibir o atalho manualmente (hoje só dá pra saber qual foi escolhido via log/balão de notificação)
+- [ ] Push-to-talk (segurar/soltar) via low-level keyboard hook, como alternativa ao toggle atual
+- [ ] Recuperação de falhas: rede cai, API erra, crash, timeout — preservar áudio para retry (hoje, se `TranscribeAsync` falhar, o áudio gravado é descartado — perda de trabalho do usuário, viola §23)
+- [x] Tratamento de estados impossíveis: dupla ativação durante processamento é ignorada (`AppState.Processing` bloqueia novo trigger); handler global de exceção não derruba o app
+- [ ] Seleção manual de microfone e tratamento robusto de "nenhum microfone disponível" (implementado de forma mínima, não testado a fundo)
 
 ## P2 — Produto
 - [ ] Painel principal (status, atalho ativo, últimas transcrições, atividade)

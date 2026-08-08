@@ -82,4 +82,14 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 
 - **Decisão do proprietário (definitiva)**: ao operar contas com múltiplos projetos (Railway, Vercel, etc.), listar recursos apenas o necessário para localizar/criar a infraestrutura do Aionix Scribe. Nunca investigar, auditar, modificar ou fazer recomendações sobre outros projetos do proprietário (ex.: Aionix.Backup) — mesmo que algo pareça digno de nota. Ver também a seção "Infraestrutura: política Remote-First" em `CLAUDE.md`.
 
+---
+
+## D010 — App real construído; hotkey com cadeia de fallback automática
+
+- **Contexto**: o app real (`desktop/AionixScribe/`) foi construído reaproveitando os padrões validados no spike (D003), com captura de áudio via NAudio e chamada ao backend real (D004). No primeiro teste ao vivo, o combo padrão escolhido (Ctrl+Alt+Espaço) estava de fato em conflito com outro aplicativo já em uso na máquina do proprietário — a detecção de conflito (validada no spike) funcionou como esperado, mas um único combo fixo sem alternativa deixaria o app inutilizável até o usuário liberar manualmente o atalho.
+- **Decisão**: em vez de falhar com um único combo, o app tenta uma lista ordenada de candidatos (`Ctrl+Alt+Espaço` → `Ctrl+Alt+Shift+Espaço` → `Ctrl+Win+Espaço` → `Ctrl+Alt+Shift+D`) e usa o primeiro que registrar com sucesso, avisando o usuário via balão de notificação qual foi ativado.
+- **Resultado**: no teste real, o segundo candidato (`Ctrl+Alt+Shift+Espaço`) registrou com sucesso, e o fluxo completo (hotkey → gravação real via headset → backend em produção → Gemini → texto limpo → colagem no campo em foco) funcionou de primeira, validado pelo proprietário com a própria voz.
+- **Consequência**: uma UI para configurar/exibir o atalho manualmente continua necessária (P1/P2) — o mecanismo atual de fallback é resiliente, mas o usuário só descobre qual atalho está ativo por um balão de notificação ou um arquivo de log, o que não é uma solução de produto aceitável a longo prazo.
+- **Gap identificado durante o teste**: o ambiente de desenvolvimento inicial não tinha nenhum dispositivo de microfone (`WaveInEvent.DeviceCount == 0`) até o proprietário conectar um headset — isso expôs que o app não tinha tratamento para "sem microfone" (§29). Adicionado tratamento básico (try/catch com aviso ao usuário), mas ainda não testado a fundo (ver ROADMAP.md P1).
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*
