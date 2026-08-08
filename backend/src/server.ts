@@ -1,5 +1,7 @@
 import Fastify from "fastify";
+import { sql } from "drizzle-orm";
 import { transcribeAudio, GeminiError } from "./gemini.js";
+import { db } from "./db/index.js";
 
 const app = Fastify({ logger: true, bodyLimit: 30 * 1024 * 1024 });
 
@@ -9,6 +11,27 @@ for (const mime of ["audio/wav", "audio/webm", "audio/mpeg", "audio/mp4", "audio
 }
 
 app.get("/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
+
+app.get("/health/db", async (_req, reply) => {
+  try {
+    await db.execute(sql`SELECT 1`);
+    return reply.send({ status: "ok", database: "connected" });
+  } catch (err) {
+    app.log.error(err, "Falha ao conectar no Postgres");
+    // err é DrizzleQueryError ("Failed query: ..."); a causa real está em err.cause, que pode ser um
+    // AggregateError do Node (ex.: várias tentativas ECONNREFUSED) sem message própria — nesse caso
+    // a mensagem útil está em cause.errors[0].
+    let cause: string | null = null;
+    if (err instanceof Error && err.cause instanceof Error) {
+      cause = err.cause.message || null;
+      if (!cause && "errors" in err.cause && Array.isArray((err.cause as AggregateError).errors)) {
+        cause = (err.cause as AggregateError).errors[0]?.message ?? null;
+      }
+    }
+    const message = cause ?? (err instanceof Error ? err.message : "Erro desconhecido");
+    return reply.code(503).send({ status: "error", database: "disconnected", error: message });
+  }
+});
 
 // Stopgap enquanto não existe conta/dispositivo real (P3): sem isso, a URL pública do endpoint
 // permite que qualquer um queime a cota da Gemini. Não é autenticação de usuário de verdade.
