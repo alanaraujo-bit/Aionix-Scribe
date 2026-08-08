@@ -43,4 +43,21 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 
 ---
 
+---
+
+## D004 — Backend: Node.js + TypeScript + Fastify, sem ORM/banco ainda
+
+- **Contexto**: D001 exige um backend que guarde `GEMINI_API_KEY` e faça proxy para a Gemini (nenhuma chamada direta do desktop). Precisava de uma stack rápida de implementar, com bom suporte a deploy no Railway e SDKs maduros para Gemini/Stripe.
+- **Decisão**: Node.js + TypeScript + Fastify, sem ORM (Prisma) e sem banco de dados por enquanto.
+- **Razão**: o P0 precisa de exatamente um endpoint (`POST /api/transcribe`: áudio → texto formatado), sem nenhum dado a persistir ainda. Adicionar ORM/migrations antes de ter um schema real seria abstração prematura. Node/TS foi escolhido sobre Python/Go por: SDKs de primeira classe para Stripe e Gemini, deploy trivial no Railway (Railpack detecta e builda automaticamente via Nixpacks), e por ser a linguagem mais rápida de iterar para esta equipe de agentes.
+- **Validado**: deploy real no Railway (projeto `aionix-scribe`, serviço `aionix-scribe-api`), endpoint `/api/transcribe` testado com áudio PT-BR real (sintetizado via SAPI do Windows) contra o endpoint de produção — pipeline completo áudio→Gemini→texto limpo funcionando, ~4.9s de latência ponta a ponta (quase toda ela é a própria chamada à Gemini, overhead do proxy é desprezível).
+- **Consequência**: Postgres/Prisma entram quando histórico (P2) ou entitlements/billing (P3) exigirem persistência real — não antes.
+
+## D005 — Infraestrutura Railway: projeto dedicado, não reaproveitado
+
+- **Contexto**: já existia um projeto Railway chamado "Aionix.Backup" na conta do usuário. Antes de criar infraestrutura nova, o CLAUDE.md (política Remote-First) exige checar duplicação.
+- **Descoberta**: "Aionix.Backup" é um produto completamente diferente e não relacionado (backup/storage com OAuth do Google, JWT próprio, Postgres próprio, frontends em `aionix-backup-*.vercel.app`). Confirmado com o usuário que não deve ser tocado.
+- **Decisão**: criado projeto Railway novo e dedicado `aionix-scribe`, com serviço `aionix-scribe-api` (Node/TS/Fastify, sem banco por enquanto — ver D004).
+- **Nota de segurança**: ao inspecionar "Aionix.Backup" para decidir se era reaproveitável, o comando `railway variables` expôs secrets reais desse outro projeto (JWT_SECRET, GOOGLE_CLIENT_SECRET, senha do Postgres) no output/transcript desta sessão. Não afeta o Aionix Scribe, mas foi registrado como recomendação de rotação em `PENDENCIAS_USUARIO.md` (item 6). Lição incorporada ao CLAUDE.md: preferir inspeção sem exposição de valores (nome do serviço, domínio, endpoint de health) antes de listar variáveis com valores.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

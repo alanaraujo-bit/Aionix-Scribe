@@ -7,10 +7,10 @@ Hierarquia de valor (não é uma sequência rígida de datas). Cada fase só é 
 - [x] Spike: hotkey global + overlay always-on-top sem roubo de foco + injeção de texto (Notepad, browser, VS Code testados; Windows Terminal inconclusivo; janela elevada requer verificação manual — ver DECISIONS.md D003)
 - [x] Decisão de stack final registrada em DECISIONS.md (D003): .NET 8 + WPF + Win32 P/Invoke; inserção de texto via clipboard-paste (não keystroke simulation)
 - [ ] Captura de áudio (seleção de microfone, start/stop)
-- [ ] Backend mínimo: auth de dispositivo + proxy Gemini (nenhuma chamada direta do cliente)
-- [ ] Pipeline: áudio → transcrição → limpeza (hesitações/repetições) → pontuação/formatação
+- [x] Backend mínimo: proxy Gemini deployado em produção real (Railway, projeto `aionix-scribe`, serviço `aionix-scribe-api`, `https://aionix-scribe-api-production.up.railway.app`). Endpoint `/api/transcribe` validado com áudio PT-BR real. **Falta**: autenticação de dispositivo/usuário (ainda aceita chamadas sem auth — aceitável enquanto só o backend interno chama, mas bloqueante antes de expor a URL a usuários reais)
+- [x] Pipeline: áudio → transcrição → limpeza (hesitações/repetições) → pontuação/formatação — validado com um caso real (frase com hesitação "deixa eu pensar" removida corretamente, acentuação adicionada, intenção preservada). Golden dataset (§25) ainda não construído — um caso não é cobertura.
 - [ ] Inserção do texto resultante no campo de origem via colagem de clipboard (save/restore de **todos os formatos presentes**, não só texto — a implementação do spike só cobria `CF_UNICODETEXT`; um usuário com imagem/arquivo copiado não pode perdê-lo a cada ditado)
-- [ ] `RegisterHotKey` com detecção de conflito real (retorno `false`) exposta ao usuário de forma clara (não falha silenciosa)
+- [x] `RegisterHotKey` com detecção de conflito real (retorno `false`) — validado no spike (ver DECISIONS.md D003); falta expor ao usuário final na UI real (não é mais problema técnico, é UX)
 - [ ] Overlay comunica estados: ativando/ouvindo/gravando/processando/concluído/erro/cancelado
 - **Bloqueio conhecido**: validação end-to-end de transcrição real depende de `GEMINI_API_KEY` (ver PENDENCIAS_USUARIO.md #1)
 

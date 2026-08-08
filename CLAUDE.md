@@ -40,3 +40,11 @@ Os agentes Opus de revisão (`scribe-perf`, `scribe-security`, `scribe-architect
 ## Coordenação
 
 O agente principal da sessão continua responsável pela coordenação geral: decidir qual subagente acionar, integrar os resultados, e manter a visão de conjunto do projeto. Os subagentes não se coordenam entre si.
+
+## Infraestrutura: política Remote-First
+
+O SaaS do Aionix Scribe (backend, banco de dados, billing, serviços auxiliares) deve rodar em infraestrutura remota real (atualmente Railway para backend/dados, Vercel para superfícies web), não na máquina local do desenvolvedor. A máquina Windows local é usada apenas para o que exige presença física de Windows: edição de código, Git, compilação do cliente desktop, e teste de recursos nativos (microfone, hotkeys globais, overlay, system tray, inserção de texto em outros apps, instalador).
+
+Ciclo de trabalho preferencial para qualquer mudança de backend: implementar → deploy remoto → testar contra o serviço real → analisar logs reais → corrigir → redeploy → validar. Mocks são aceitáveis em testes unitários/isolados, mas nunca substituem a validação final de uma integração real (Gemini, Stripe, banco de dados).
+
+Projetos de infraestrutura existentes devem ser reaproveitados quando genuinamente correspondem ao escopo do Aionix Scribe; nunca duplicar sem necessidade. Ao inspecionar infraestrutura de nuvem já existente (Railway, Vercel, etc.) antes de decidir reaproveitar ou criar nova, ter cuidado especial com comandos que exibem valores de variáveis de ambiente (ex. `railway variables`) — eles podem expor secrets de projetos não relacionados. Prefira formas de inspeção que não exponham valores (nome do serviço, domínio público, resposta de um endpoint de health) antes de recorrer a uma listagem que mostra segredos em texto claro.
