@@ -3,6 +3,12 @@ using NAudio.Wave;
 
 namespace AionixScribe;
 
+public sealed class NoMicrophoneException : Exception
+{
+    public NoMicrophoneException() : base(
+        "Nenhum microfone foi detectado pelo Windows. Verifique se ele está conectado, ligado e não está em modo de suspensão (comum em headsets sem fio).") { }
+}
+
 public sealed class AudioRecorder : IDisposable
 {
     private WaveInEvent? _waveIn;
@@ -14,6 +20,14 @@ public sealed class AudioRecorder : IDisposable
     public void Start()
     {
         if (IsRecording) return;
+
+        // Checagem explícita em vez de deixar o WaveInEvent falhar com uma exceção genérica —
+        // "sem microfone" é um caso real e comum o suficiente (headsets sem fio dormem/desconectam)
+        // para merecer uma mensagem específica em vez de um erro técnico cru (§29, §62).
+        if (WaveInEvent.DeviceCount == 0)
+        {
+            throw new NoMicrophoneException();
+        }
 
         _buffer = new MemoryStream();
         _waveIn = new WaveInEvent

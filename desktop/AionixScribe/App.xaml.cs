@@ -14,13 +14,15 @@ public partial class App : System.Windows.Application
     private Forms.NotifyIcon? _tray;
     private DispatcherTimer? _hideTimer;
     private Forms.ToolStripMenuItem? _pendingMenuItem;
+    private SettingsWindow? _settingsWindow;
 
     private enum AppState { Idle, Listening, Processing }
     private AppState _state = AppState.Idle;
 
-    // Candidatos tentados em ordem até um registrar sem conflito. Configuração manual de atalho
-    // fica para a UI de settings (P2) — por ora, resiliência automática é melhor que travar num
-    // único combo fixo que pode já estar em uso por outro app na máquina do usuário.
+    public string CurrentHotkeyLabel { get; private set; } = "nenhum atalho ativo";
+
+    // Candidatos tentados em ordem até um registrar sem conflito, quando não há preferência
+    // salva pelo usuário (ver HotkeySettings / SettingsWindow, DECISIONS.md D010).
     private static readonly (uint Modifiers, uint Vk, string Label)[] HotkeyCandidates =
     {
         (Native.MOD_CONTROL | Native.MOD_ALT, 0x20, "Ctrl+Alt+Espaço"),
@@ -36,6 +38,14 @@ public partial class App : System.Windows.Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
         SetupTrayIcon();
+
+        var custom = HotkeySettings.LoadCustom();
+        if (custom != null && TryRegister(custom.Modifiers, custom.Vk, custom.Label))
+        {
+            NotifyActiveHotkey();
+            return;
+        }
+
         RegisterHotkeyWithFallback();
     }
 
@@ -43,25 +53,76 @@ public partial class App : System.Windows.Application
     {
         foreach (var (modifiers, vk, label) in HotkeyCandidates)
         {
-            try
+            if (TryRegister(modifiers, vk, label))
             {
-                _hotkey = new HotkeyManager(modifiers, vk);
-                _hotkey.Triggered += OnHotkeyTriggered;
-                _tray!.Text = $"Aionix Scribe — {label}";
-                _tray!.ShowBalloonTip(3000, "Aionix Scribe", $"Atalho ativo: {label}", Forms.ToolTipIcon.Info);
-                System.IO.File.WriteAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "active_hotkey.txt"), label);
+                NotifyActiveHotkey();
                 return;
-            }
-            catch (HotkeyConflictException)
-            {
-                // tenta o próximo candidato
             }
         }
 
+        CurrentHotkeyLabel = "sem atalho disponível";
         _tray!.Text = "Aionix Scribe — sem atalho disponível";
         _tray!.ShowBalloonTip(8000, "Aionix Scribe",
-            "Todos os atalhos padrão já estão em uso por outros aplicativos. Abra o menu da bandeja para mais informações.",
+            "Todos os atalhos padrão já estão em uso por outros aplicativos. Abra Configurações para escolher outro.",
             Forms.ToolTipIcon.Warning);
+    }
+
+    /// Tenta registrar um combo, substituindo o atual se houver um. Não salva preferência —
+    /// isso é responsabilidade de quem chama (settings salva, startup/fallback não salva).
+    private bool TryRegister(uint modifiers, uint vk, string label)
+    {
+        try
+        {
+            var newHotkey = new HotkeyManager(modifiers, vk);
+            _hotkey?.Dispose();
+            _hotkey = newHotkey;
+            _hotkey.Triggered += OnHotkeyTriggered;
+            CurrentHotkeyLabel = label;
+            return true;
+        }
+        catch (HotkeyConflictException)
+        {
+            return false;
+        }
+    }
+
+    private void NotifyActiveHotkey()
+    {
+        _tray!.Text = $"Aionix Scribe — {CurrentHotkeyLabel}";
+        _tray!.ShowBalloonTip(3000, "Aionix Scribe", $"Atalho ativo: {CurrentHotkeyLabel}", Forms.ToolTipIcon.Info);
+    }
+
+    /// Chamado pela SettingsWindow quando o usuário captura um novo atalho. Em caso de conflito,
+    /// mantém o atalho anterior funcionando (não deixa o app sem nenhum atalho registrado).
+    public bool TryChangeHotkey(uint modifiers, uint vk, string label, out string? error)
+    {
+        var previousHotkey = _hotkey;
+        var previousLabel = CurrentHotkeyLabel;
+        try
+        {
+            var candidate = new HotkeyManager(modifiers, vk);
+            previousHotkey?.Dispose();
+            _hotkey = candidate;
+            _hotkey.Triggered += OnHotkeyTriggered;
+            CurrentHotkeyLabel = label;
+            HotkeySettings.SaveCustom(new HotkeyChoice(modifiers, vk, label));
+            _tray!.Text = $"Aionix Scribe — {CurrentHotkeyLabel}";
+            error = null;
+            return true;
+        }
+        catch (HotkeyConflictException ex)
+        {
+            CurrentHotkeyLabel = previousLabel;
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    public void ResetHotkeyToAuto()
+    {
+        _hotkey?.Dispose();
+        _hotkey = null;
+        RegisterHotkeyWithFallback();
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -80,6 +141,7 @@ public partial class App : System.Windows.Application
             Text = "Aionix Scribe",
         };
         var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Configurações...", null, (_, _) => OpenSettings());
         _pendingMenuItem = new Forms.ToolStripMenuItem("Reprocessar pendências", null, OnReprocessPendingClicked) { Enabled = false };
         menu.Items.Add(_pendingMenuItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -112,8 +174,15 @@ public partial class App : System.Windows.Application
         {
             _recorder.Start();
         }
+        catch (NoMicrophoneException ex)
+        {
+            DebugLog.Write($"StartListening: {ex.Message}");
+            _tray?.ShowBalloonTip(6000, "Aionix Scribe", ex.Message, Forms.ToolTipIcon.Warning);
+            return;
+        }
         catch (Exception ex)
         {
+            DebugLog.Write($"StartListening: falha ao acessar microfone: {ex}");
             _tray?.ShowBalloonTip(5000, "Aionix Scribe", $"Não foi possível acessar o microfone: {ex.Message}", Forms.ToolTipIcon.Error);
             return; // permanece em Idle — não há gravação para processar depois
         }
@@ -239,6 +308,17 @@ public partial class App : System.Windows.Application
             _overlay?.Hide();
         };
         _hideTimer.Start();
+    }
+
+    private void OpenSettings()
+    {
+        if (_settingsWindow == null || !_settingsWindow.IsLoaded)
+        {
+            _settingsWindow = new SettingsWindow();
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        }
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
     }
 
     protected override void OnExit(ExitEventArgs e)

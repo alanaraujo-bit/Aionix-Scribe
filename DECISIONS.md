@@ -102,4 +102,13 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Defesa adicional**: mesmo com o orçamento limitado, se a Gemini ainda retornar `finishReason: STOP` sem texto, o backend agora trata isso como "nenhuma fala detectada" (resultado `text: ""`, HTTP 200) em vez de erro 502 — esse é um resultado plausível e não deveria disparar o mecanismo de retry/preservação de áudio do app (que é para falhas técnicas reais, não para "o usuário não falou nada compreensível"). Qualquer outro `finishReason` (SAFETY, RECITATION, etc.) sem texto continua sendo tratado como falha real.
 - **Validado em produção**: a mesma gravação que causava o 502 foi reprocessada com sucesso após o fix e deploy, retornando uma transcrição real e coerente.
 
+---
+
+## D012 — UI de configuração do atalho + tratamento específico de "sem microfone"
+
+- **Contexto**: D010 identificou que o usuário só sabia qual atalho estava ativo por um balão de notificação (fácil de perder). Construída `SettingsWindow` (WPF) acessível pelo menu da bandeja: mostra o atalho atual, permite capturar um novo ao vivo (pressione as teclas, exige pelo menos um modificador), valida conflito antes de aplicar (mantém o atalho anterior funcionando se o novo falhar), e persiste a escolha em `%LOCALAPPDATA%\AionixScribe\settings.json`. "Restaurar padrão" volta para a cadeia de fallback automática.
+- **Validado ao vivo**: proprietário testou capturar e aplicar um novo atalho pela UI, funcionou.
+- **Achado paralelo real**: durante o teste, o headset do proprietário desconectou/entrou em suspensão (comportamento comum de headsets sem fio), e o app reportava um erro genérico de microfone. Confirmado com `WaveInEvent.DeviceCount == 0` que era uma ausência real de dispositivo, não um bug. Adicionada `NoMicrophoneException` com mensagem específica e acionável ("verifique se está conectado, ligado e não em suspensão") em vez de repassar a mensagem técnica crua da exceção do NAudio.
+- **Consequência**: seleção manual entre múltiplos microfones (quando há mais de um dispositivo) continua não implementada — hoje o app sempre usa o dispositivo padrão do Windows (índice 0 do NAudio). Fica para quando isso for um caso real relatado, não antes.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

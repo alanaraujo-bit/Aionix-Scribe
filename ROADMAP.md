@@ -19,13 +19,13 @@ O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo propriet�
 - [ ] Push-to-talk (segurar/soltar) — versão atual é apenas toggle (aperta pra começar, aperta de novo pra parar), porque reaproveita `RegisterHotKey` (que não avisa quando a tecla é solta). Push-to-talk exigiria um low-level keyboard hook (`WH_KEYBOARD_LL`) à parte — ver ROADMAP P1.
 
 ## P1 — Confiabilidade
-- [x] Tray icon básico (ícone genérico do sistema — ícone de marca é P2) com "Sair"; detecção de conflito de hotkey com fallback automático já implementado (ver DECISIONS.md D010)
-- [ ] Execução em background leve, medir idle CPU/RAM de verdade (ainda não medido)
-- [ ] UI para configurar/exibir o atalho manualmente (hoje só dá pra saber qual foi escolhido via log/balão de notificação)
+- [x] Tray icon básico (ícone genérico do sistema — ícone de marca é P2) com "Sair"; detecção de conflito de hotkey com fallback automático (ver DECISIONS.md D010)
+- [x] Idle CPU/RAM medidos de verdade: 133MB working set, 0% CPU idle (ver tabela de benchmark abaixo). Cold start ainda não medido.
+- [x] UI para configurar/exibir o atalho manualmente — `SettingsWindow` acessível pelo menu da bandeja, captura o atalho ao vivo (pressione as teclas), valida conflito antes de trocar, persiste em `%LOCALAPPDATA%\AionixScribe\settings.json`, com opção de restaurar o padrão automático. Validado ao vivo pelo proprietário.
 - [ ] Push-to-talk (segurar/soltar) via low-level keyboard hook, como alternativa ao toggle atual
-- [ ] Recuperação de falhas: rede cai, API erra, crash, timeout — preservar áudio para retry (hoje, se `TranscribeAsync` falhar, o áudio gravado é descartado — perda de trabalho do usuário, viola §23)
+- [x] Recuperação de falhas: falha técnica real → retry automático → preservação do áudio + reprocessamento manual pela bandeja (ver DECISIONS.md D010/D011, validado ao vivo com um bug real de produção)
 - [x] Tratamento de estados impossíveis: dupla ativação durante processamento é ignorada (`AppState.Processing` bloqueia novo trigger); handler global de exceção não derruba o app
-- [ ] Seleção manual de microfone e tratamento robusto de "nenhum microfone disponível" (implementado de forma mínima, não testado a fundo)
+- [x] Tratamento de "nenhum microfone disponível": exceção específica (`NoMicrophoneException`) com mensagem clara em vez de erro técnico cru — descoberto e validado ao vivo (o headset do proprietário desconectou/dormiu no meio do teste, cenário real, não hipotético). Seleção manual entre múltiplos microfones ainda não existe (só usa o dispositivo padrão do Windows).
 
 ## P2 — Produto
 - [ ] Painel principal (status, atalho ativo, últimas transcrições, atividade)
@@ -84,3 +84,17 @@ Pass timeboxed via web (site oficial + reviews de terceiros, ago/2026). Não tes
 | pricing | Free (2k palavras/semana), Pro (ilimitado), Teams, Enterprise | Essencial/Premium/Ultra, mensal/anual, Price IDs reais do Stripe (§47–52) | site oficial |
 
 **Conclusão da pesquisa**: o gap de oportunidade real não é de features (Wispr já cobre bem o essencial) — é de **confiabilidade percebida ao longo do tempo** e **leveza no Windows**. Esses dois pontos devem ser tratados como requisitos de primeira classe do P0/P1, não polimento tardio.
+
+## Benchmark de performance — medições reais (Aionix Scribe)
+
+| Métrica | Valor medido | Data | Método |
+|---|---|---|---|
+| RAM idle (working set) | 133 MB | 2026-08-08 | `Get-Process` após ~15s de app aberto sem gravar, build Release não self-contained/não trimmed |
+| RAM idle (private memory) | 60 MB | 2026-08-08 | idem |
+| CPU idle (janela de 10s) | 0% | 2026-08-08 | idem |
+| Threads | 21 | 2026-08-08 | idem |
+| Handles | 830 | 2026-08-08 | idem |
+| Latência ponta a ponta (fala→texto inserido) | ~2.6–5s | 2026-08-08 | testes reais via `/api/transcribe` em produção, várias amostras (ver DECISIONS.md D004, D011) |
+| Cold start do app | não medido ainda | — | pendente |
+
+**Contexto**: 133MB de working set é uma baseline honesta para uma app WPF não otimizada (framework-dependent, sem trimming/ReadyToRun/self-contained ainda). Não é ruim comparado a apps Electron (que Wispr Flow provavelmente usa, dado o relato de alto uso de RAM/CPU nas reviews), mas há espaço claro de otimização antes de declarar "leveza" como diferencial vencido — não apenas presumido. Revisitar depois de: (1) medir cold start, (2) testar build self-contained/trimmed, (3) confirmar que NAudio não mantém buffers alocados fora de uma gravação ativa.
