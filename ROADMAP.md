@@ -9,7 +9,8 @@ Hierarquia de valor (não é uma sequência rígida de datas). Cada fase só é 
 - [ ] Captura de áudio (seleção de microfone, start/stop)
 - [ ] Backend mínimo: auth de dispositivo + proxy Gemini (nenhuma chamada direta do cliente)
 - [ ] Pipeline: áudio → transcrição → limpeza (hesitações/repetições) → pontuação/formatação
-- [ ] Inserção do texto resultante no campo de origem (SendInput + fallback clipboard, com save/restore de clipboard)
+- [ ] Inserção do texto resultante no campo de origem via colagem de clipboard (save/restore de **todos os formatos presentes**, não só texto — a implementação do spike só cobria `CF_UNICODETEXT`; um usuário com imagem/arquivo copiado não pode perdê-lo a cada ditado)
+- [ ] `RegisterHotKey` com detecção de conflito real (retorno `false`) exposta ao usuário de forma clara (não falha silenciosa)
 - [ ] Overlay comunica estados: ativando/ouvindo/gravando/processando/concluído/erro/cancelado
 - **Bloqueio conhecido**: validação end-to-end de transcrição real depende de `GEMINI_API_KEY` (ver PENDENCIAS_USUARIO.md #1)
 

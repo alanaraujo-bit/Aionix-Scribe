@@ -125,6 +125,10 @@ internal static class Native
     public const uint GMEM_MOVEABLE = 0x0002;
 
     public const int WM_HOTKEY = 0x0312;
+    public const uint MOD_ALT = 0x0001;
+    public const uint MOD_CONTROL = 0x0002;
+    public const uint MOD_SHIFT = 0x0004;
+    public const uint MOD_WIN = 0x0008;
 }
 
 internal static class Log
@@ -288,6 +292,41 @@ public class OverlayWindow : Window
     }
 }
 
+public class HotkeyListener : IDisposable
+{
+    private readonly HwndSource _source;
+    private readonly int _id;
+    public int FireCount { get; private set; }
+
+    public HotkeyListener(int id, uint modifiers, uint vk)
+    {
+        _id = id;
+        var parameters = new HwndSourceParameters("AionixSpikeHotkeyWindow") { Width = 0, Height = 0, WindowStyle = 0 };
+        _source = new HwndSource(parameters);
+        _source.AddHook(WndProc);
+        var registered = Native.RegisterHotKey(_source.Handle, _id, modifiers, vk);
+        Log.Write($"RegisterHotKey(id={id}, mods={modifiers}, vk={vk:X2}) -> registered={registered}, lastError={Marshal.GetLastWin32Error()}");
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == Native.WM_HOTKEY && wParam.ToInt32() == _id)
+        {
+            FireCount++;
+            Log.Write($"WM_HOTKEY fired (count={FireCount})");
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
+    public void Dispose()
+    {
+        Native.UnregisterHotKey(_source.Handle, _id);
+        _source.RemoveHook(WndProc);
+        _source.Dispose();
+    }
+}
+
 internal static class Program
 {
     [STAThread]
@@ -301,6 +340,42 @@ internal static class Program
 
         switch (args[0])
         {
+            case "fire-hotkey":
+                {
+                    const ushort VK_F13 = 0x7C;
+                    var inputs = new[]
+                    {
+                        new Native.INPUT { type = Native.INPUT_KEYBOARD, U = new Native.InputUnion { ki = new Native.KEYBDINPUT { wVk = Native.VK_CONTROL } } },
+                        new Native.INPUT { type = Native.INPUT_KEYBOARD, U = new Native.InputUnion { ki = new Native.KEYBDINPUT { wVk = Native.VK_MENU } } },
+                        new Native.INPUT { type = Native.INPUT_KEYBOARD, U = new Native.InputUnion { ki = new Native.KEYBDINPUT { wVk = 0x10 } } }, // VK_SHIFT
+                        new Native.INPUT { type = Native.INPUT_KEYBOARD, U = new Native.InputUnion { ki = new Native.KEYBDINPUT { wVk = VK_F13 } } },
+                        new Native.INPUT { type = Native.INPUT_KEYBOARD, U = new Native.InputUnion { ki = new Native.KEYBDINPUT { wVk = VK_F13, dwFlags = Native.KEYEVENTF_KEYUP } } },
+                        new Native.INPUT { type = Native.INPUT_KEYBOARD, U = new Native.InputUnion { ki = new Native.KEYBDINPUT { wVk = 0x10, dwFlags = Native.KEYEVENTF_KEYUP } } },
+                        new Native.INPUT { type = Native.INPUT_KEYBOARD, U = new Native.InputUnion { ki = new Native.KEYBDINPUT { wVk = Native.VK_MENU, dwFlags = Native.KEYEVENTF_KEYUP } } },
+                        new Native.INPUT { type = Native.INPUT_KEYBOARD, U = new Native.InputUnion { ki = new Native.KEYBDINPUT { wVk = Native.VK_CONTROL, dwFlags = Native.KEYEVENTF_KEYUP } } },
+                    };
+                    var sent = Native.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Native.INPUT>());
+                    Log.Write($"fire-hotkey: sent Ctrl+Alt+Shift+F13, events={sent}/{inputs.Length}, lastError={Marshal.GetLastWin32Error()}");
+                    return 0;
+                }
+            case "hotkey-listen":
+                {
+                    // args: hotkey-listen <seconds> ; uses Ctrl+Alt+Shift+F13 (uncommon combo, low collision risk)
+                    var seconds = args.Length > 1 ? int.Parse(args[1]) : 5;
+                    var app = new Application();
+                    const uint VK_F13 = 0x7C;
+                    var listener = new HotkeyListener(1, Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_SHIFT, VK_F13);
+                    var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(seconds) };
+                    timer.Tick += (_, _) =>
+                    {
+                        Log.Write($"hotkey-listen window closing, totalFireCount={listener.FireCount}");
+                        listener.Dispose();
+                        app.Shutdown();
+                    };
+                    timer.Start();
+                    app.Run();
+                    return 0;
+                }
             case "sizeof":
                 {
                     Log.Write($"sizeof(INPUT)={Marshal.SizeOf<Native.INPUT>()} sizeof(KEYBDINPUT)={Marshal.SizeOf<Native.KEYBDINPUT>()} sizeof(InputUnion)={Marshal.SizeOf<Native.InputUnion>()} IntPtr.Size={IntPtr.Size}");
