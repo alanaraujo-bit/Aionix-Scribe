@@ -41,19 +41,25 @@ O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo propriet�
 - [x] Temas Light/Dark completos (`Theme.Dark.xaml`/`Theme.Light.xaml`) — paleta clara construída como sistema próprio (elevação, contraste calibrado por WCAG, hierarquia de texto e identidade dos botões preservadas, não uma inversão mecânica de cor; ver DECISIONS.md D017 pros valores e o porquê de cada um). Preferência Sistema/Claro/Escuro em Configurações, troca em tempo real via `DynamicResource` sem reiniciar o app; modo Sistema acompanha o Windows (`AppsUseLightTheme` no registro) inclusive em tempo real via `SystemEvents.UserPreferenceChanged`. Validado ao vivo pelo proprietário: troca em tempo real entre os temas sem reiniciar, tema claro legível, tema escuro idêntico ao anterior.
 
 ## P3 — Plataforma SaaS
-- [ ] Contas e autenticação
-- [ ] Entitlements (Essential/Premium/Ultra) como fonte única de verdade
-- [ ] Stripe: checkout, customer portal, upgrade/downgrade/cancelamento
-- [ ] Webhook Stripe: implementar endpoint público, deployar, registrar no Stripe TEST, obter/configurar `STRIPE_WEBHOOK_SECRET` no Railway (secret, nunca em código/git/logs), validar assinatura, idempotência, e os eventos de subscription criada/atualizada/cancelada/renovada/pagamento falhado com sincronização de entitlement. Tarefa de engenharia normal — não é pendência do proprietário.
-- [ ] Quota do plano Essencial — **decisão comercial definitiva (ver DECISIONS.md D006)**: 300 minutos (18.000s) por ciclo mensal, armazenados internamente em segundos, exibidos ao usuário em minutos/horas. Regras a implementar:
-  - contabilizar somente áudio efetivamente processado (cancelamento antes do processamento não consome quota);
-  - falha técnica (rede, infra, provedor) não consome quota; retries devem ser idempotentes, nunca descontando duas vezes o mesmo processamento;
-  - reset baseado no ciclo real de assinatura (não mês civil), sem rollover;
-  - UI mostra: consumido, saldo restante, percentual, data de renovação;
-  - avisos em ~80%, ~95% e 100% de uso; ao atingir 100%, bloquear novos processamentos no Essencial e oferecer upgrade;
-  - Premium/Ultra sem franquia mensal, sujeitos apenas a proteção razoável contra abuso/fraude;
-  - manter métricas de uso para recalibrar o limite futuramente com base em custo real;
-  - valor `18000` centralizado em uma única constante de configuração (`backend/src/config/tiers.ts`), nunca espalhado pelo código.
+
+**Arquitetura decidida em DECISIONS.md D018** (Postgres+Drizzle no Railway, OAuth2/PKCE com navegador do sistema + Auth0, metering com reserva-e-libera idempotente). Duas pendências reais do proprietário bloqueiam partes específicas (ver `PENDENCIAS_USUARIO.md`: política de trial, aprovação do Auth0) — o restante avança em paralelo.
+
+- [ ] **Passo 0** — Postgres provisionado no Railway (projeto `aionix-scribe`), Drizzle ORM, migração inicial (5 tabelas: `users`/`subscriptions`/`usage_periods`/`usage_events`/`webhook_events`), `GET /health/db`. Não bloqueado por nenhuma pendência.
+- [ ] **Passo 1** — Login real via OAuth2/PKCE (navegador padrão + loopback local), `GET /api/me` (provisiona usuário lazy), UI de login no cliente (DPAPI para o refresh token). Bloqueado pela aprovação do provedor de identidade (pendência #2).
+- [ ] **Passo 2** — Entitlements (`GET /api/me/entitlement`) como fonte única de verdade; UI exibe tier/quota reais. Bloqueado parcialmente pela política de trial (pendência #1) para o caso "autenticado sem assinatura".
+- [ ] **Passo 3** — Cutover de `/api/transcribe` do stopgap `X-App-Secret` (D013) para `Bearer`, **em dois deploys separados** (aceitar os dois em paralelo primeiro, remover o antigo só depois de validado ao vivo) — nunca deixar o app sem nenhum caminho de ditado funcionando.
+- [ ] **Passo 4** — Metering completo (reserva/liberação atômica, idempotência via `X-Recording-Id` mintado no cliente, reaper de reservas órfãs) + as regras de negócio do D006 abaixo + **classificação de erro em 3 categorias no cliente** (sucesso / falha técnica retentável / recusa determinística como 402 — hoje `BackendClient` trata tudo não-2xx como problema de conexão, o que faria um usuário sem cota ouvir que a internet está com problema).
+- [ ] **Passo 5** — Stripe: checkout, customer portal, upgrade/downgrade/cancelamento, webhook (`STRIPE_WEBHOOK_SECRET` no Railway, corpo cru pra verificação de assinatura, idempotência via `webhook_events`, eventos de subscription criada/atualizada/cancelada/renovada/pagamento falhado). Tarefa de engenharia normal — não é pendência do proprietário.
+- [ ] **Passo 6** — Teto anti-abuso de Premium/Ultra (constante nova em `tiers.ts`, valor exato é uma decisão do proprietário — não bloqueia o resto) + polimento dos avisos de quota na UI.
+
+**Regras de negócio da quota Essencial (decisão comercial definitiva, DECISIONS.md D006)**: 300 minutos (18.000s) por ciclo mensal, em segundos internamente, exibido em minutos/horas ao usuário.
+- contabilizar somente áudio efetivamente processado (cancelamento antes do processamento não consome; "sem fala detectada" **consome**, porque o áudio foi enviado e processado pela Gemini — custo real incorrido, ver nota em PENDENCIAS_USUARIO.md);
+- falha técnica (rede, infra, provedor) não consome quota; retries idempotentes via `X-Recording-Id`, nunca descontando duas vezes o mesmo processamento, mesmo em reprocessamento manual horas depois;
+- reset baseado no ciclo real de assinatura (não mês civil), sem rollover;
+- UI mostra: consumido, saldo restante, percentual, data de renovação;
+- avisos em ~80%, ~95% e 100% de uso; ao atingir 100%, bloquear novos processamentos no Essencial e oferecer upgrade;
+- Premium/Ultra sem franquia mensal, sujeitos apenas a proteção razoável contra abuso/fraude (teto diário, Passo 6);
+- manter métricas de uso (tokens/modelo/duração, nunca o texto transcrito) para recalibrar o limite futuramente com base em custo real.
 
 ## P4 — Inteligência avançada
 - [ ] Vocabulário personalizado (nomes, termos técnicos)

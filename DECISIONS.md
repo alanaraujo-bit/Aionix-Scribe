@@ -166,4 +166,60 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Corrigido no mesmo lote** (achado pelo Advisor antes de começar): `OverlayWindow.SetState`/`MainPanelWindow.Refresh` setavam cor via hex literal em código, ignorando qualquer dicionário de tema — corrigido para `FindResource` antes desta feature ser construída, senão o dot do overlay/mic ficaria preso à cor escura mesmo em tema claro.
 - **Validado**: build limpo, todas as chaves conferidas manualmente entre os dois arquivos de tema (idênticas, sem órfãs), nenhum `StaticResource` remanescente, app reaberto sem erro. **Validação visual ao vivo (as duas paletas, a troca em tempo real, e o modo Sistema) ainda pendente do proprietário** — é o tipo de coisa que só existe de verdade quando alguém vê na tela.
 
+---
+
+## D018 — Fundação da plataforma SaaS (P3): persistência, identidade, entitlements e metering
+
+*Produzida por `scribe-architect`, revisada pelo Advisor antes de commitar. P0-P2 completos; D004 previu Postgres "quando entitlements/billing exigirem" — esse momento chegou.*
+
+### Decisão 0 (transversal) — P3 não depende de P6
+P3 entrega sem nenhuma página web própria. Login usa a página hospedada do IdP; checkout/gestão de assinatura usam Stripe Checkout + Customer Portal (hospedados pela Stripe). Única página própria: `GET /api/billing/return`, HTML estático de retorno do Checkout. Nada disso vai para a Vercel — D007 continua valendo só para a landing page (P6).
+
+### Decisão 1 — Persistência: Postgres no Railway + Drizzle ORM
+Drizzle (`drizzle-orm`/`drizzle-kit`/`pg`) em vez de Prisma: migrations são `.sql` legíveis em review, `db.execute(sql\`...\`)` é first-class, `drizzle-kit migrate` roda bem como pre-deploy command do Railway. Os dois caminhos quentes do sistema (reserva atômica de quota, insert idempotente de evento) são **SQL cru independente do ORM escolhido** — nenhum ORM expressa bem `UPDATE ... WHERE <saldo> RETURNING` ou `INSERT ... ON CONFLICT DO NOTHING RETURNING`.
+
+Schema (5 tabelas): `users` (identidade, IdP trocável via coluna `auth_provider`), `subscriptions` (espelho read-model do Stripe, fonte de verdade continua sendo a Stripe), `usage_periods` (janela de quota alinhada ao ciclo real da assinatura, existe pra todos os tiers com `quota_seconds NULL` = ilimitado, permite telemetria de custo universal), `usage_events` (uma linha por gravação, não por tentativa — tabela de idempotência, guarda tokens/modelo/duração e **nenhum texto**, preservando a postura de privacidade "histórico só local"), `webhook_events` (dedupe de retries da Stripe).
+
+### Decisão 2 — Autenticação: OAuth 2.0 Authorization Code + PKCE, navegador do sistema, loopback
+App desktop nativo segue RFC 8252: abre o navegador padrão, `redirect_uri = http://127.0.0.1:<porta efêmera>/callback` via `HttpListener` local. Access token JWT curto (~1h) só em memória; **refresh token cifrado com DPAPI** em `%LOCALAPPDATA%\AionixScribe\auth.dat` (único arquivo do app que foge do padrão "JSON em claro" — proposital, é um refresh token). Backend valida JWT via JWKS do IdP, nunca vê senha, nunca emite token próprio. Provisionamento de usuário lazy no primeiro request autenticado com `sub` desconhecido.
+
+IdP recomendado: **Auth0** (documenta loopback redirect pra apps nativos, aceita `http://127.0.0.1:*` como callback, refresh token rotation, free tier cobre P3-P5) — **verificar isso no painel antes de escrever código**; se falhar, trocar de IdP é barato (coluna `auth_provider` existe pra isso). Descartado: auth própria (arrasta reset de senha/verificação de email, um subprojeto inteiro), custom URI scheme (dependeria do instalador/P5, sequestrável), Device Code Flow (UX pior sem necessidade, já tem navegador local disponível).
+
+**Aposentadoria do `X-App-Secret` (D013)**: os dois mecanismos coexistem só durante o cutover (ver sequenciamento, Passo 3 dividido em dois deploys). Ao final, `DESKTOP_SHARED_SECRET` é removido do Railway, `server.ts`, `BackendClient.cs` e `.env.example`. D013 passa a **superseded by D018**.
+
+### Decisão 3 — Idempotência e metering
+**Chave de idempotência mintada no cliente**: um `Guid` gerado uma vez logo após `_recorder.Stop()`, enviado como `X-Recording-Id` nas duas tentativas automáticas, e **gravado no nome do arquivo pendente** (`{timestamp}__{guid}.wav`) — crítico porque hoje `PendingRecordings.Save(wav)` só é chamado depois das duas tentativas, e o reprocessamento manual pode acontecer horas depois.
+
+Duração calculada **no servidor** (parse do chunk `fmt` do WAV) — nunca confiar em duração informada pelo cliente, é o valor cobrado. Fluxo "reserva-e-libera": insere `usage_events` com `ON CONFLICT (user_id, recording_id) DO NOTHING` (idempotência); reserva atômica via `UPDATE usage_periods SET consumed_seconds = consumed_seconds + $d WHERE ... AND consumed_seconds + $d <= quota_seconds RETURNING` (zero linhas = 402); chama a Gemini; sucesso ou "nenhuma fala detectada" (`finishReason STOP` sem texto, D011) = `billed`, consome quota (áudio foi "efetivamente processado" per D006, custo real incorrido); qualquer falha técnica real = libera a reserva, não consome. Reaper periódico libera `in_flight` órfãos (~10min) pra quota nunca vazar. Teto anti-abuso de Premium/Ultra vira uma constante nova em `tiers.ts` (`ABUSE_DAILY_CEILING_SECONDS`), não fica em prosa.
+
+Resposta de `/api/transcribe` ganha um bloco `quota: { tier, consumedSeconds, quotaSeconds, percent, periodEnd, warningLevel }` — os avisos de 80/95/100% (D006) não custam round-trip extra.
+
+### Decisão 4 — Provisionamento do Postgres no Railway
+`railway status` confirma link no projeto `aionix-scribe`; `railway add --database postgres` (**conferir a flag exata com `railway add --help` antes de rodar** — sintaxe pode diferir de `railway add --service`, já usado antes); `DATABASE_URL` no serviço `aionix-scribe-api` como **referência de variável** (`${{Postgres.DATABASE_URL}}`), nunca copiado/colado; usar a URL de rede privada, não a pública; nunca `railway variables` sem `--set` (foi esse comando que vazou secrets de outro projeto em D005); migrations no pre-deploy command, nunca da máquina local contra a URL pública.
+
+### Decisão 5 — Sequenciamento (cada passo testável ao vivo)
+
+| # | Entrega | Prova ao vivo |
+|---|---|---|
+| 0 | Postgres + Drizzle + migration inicial + `GET /health/db` | curl real retorna `select 1`; zero mudança de comportamento no fluxo existente |
+| 1 | IdP + `GET /api/me` (provisiona lazy). Cliente: PKCE loopback + DPAPI + "Entrar" na bandeja | Login real; `/api/transcribe` **intocado** (ainda `X-App-Secret`) |
+| 2 | `GET /api/me/entitlement`. `subscriptions` do dono semeada por SQL manual | UI real lendo dados reais sem billing existir ainda |
+| 3a | Backend aceita `Bearer` **e** `X-App-Secret` em paralelo (deploy 1) | Teste de voz real fim-a-fim com o mecanismo novo, sem remover o antigo |
+| 3b | Remove `X-App-Secret` de tudo (deploy 2, separado) — **só depois que 3a for validado ao vivo** | Confirma que o cutover não deixou o app sem caminho de ditado funcionando |
+| 4 | Metering completo + **classificação de erro no cliente em 3 categorias** (ver nota abaixo) | `ESSENCIAL_MONTHLY_QUOTA_SECONDS=60` temporário: 80/95/100%, 402, retry sem cobrança dupla, reprocessar arquivo antigo sem consumo extra |
+| 5 | Stripe checkout/portal/webhook + `STRIPE_WEBHOOK_SECRET` | Checkout real modo teste, portal real, Stripe Test Clocks pra renovação de ciclo |
+| 6 | Teto anti-abuso Premium/Ultra + polimento de avisos na UI | Teste com teto rebaixado temporariamente |
+
+**Correção do Advisor ao plano original do architect — passo 3 dividido em 3a/3b** (não um só): o architect propunha cutover em um único passo; isso deixaria o app sem nenhum caminho de ditado funcionando se a validação do JWT contra o JWKS real se comportasse mal. Dois deploys separados garantem que sempre existe um mecanismo funcionando enquanto o outro é validado.
+
+**Gap real encontrado pelo Advisor, adicionado ao escopo do Passo 4**: hoje `BackendClient.TranscribeAsync` lança exceção em qualquer resposta não-2xx, e `TryTranscribeAndInsertAsync` trata qualquer exceção como falha técnica — retry automático + `PendingRecordings.Save` + mensagem "não consegui transcrever, verifique sua conexão". Isso significa que os novos códigos determinísticos do D018 (402 quota esgotada, 401 token expirado, 429 teto de abuso, 415 WAV ilegível) cairiam todos nesse balde errado: usuário sem minutos ouviria que a internet está com problema, e `pending/` acumularia gravações que vão dar 402 pra sempre. `BackendClient` precisa expor o status code (não só embutir na mensagem da exceção) e `TryTranscribeAndInsertAsync` precisa de 3 categorias de resultado — sucesso, falha técnica retentável, e recusa determinística (sem retry, sem preservar, mensagem específica, com caminho de upgrade no caso do 402). Isso bloqueia considerar o Passo 4 concluído, não os passos 0-3.
+
+### Handoff
+`scribe-backend`: passos 0, 2, 3 (servidor), 4 (servidor), 5, 6. `scribe-desktop`: passo 1 (PKCE/DPAPI/UI login), passo 2 (exibição tier/quota), passo 3 (troca de header no cliente), passo 4 (mintagem do guid + as 3 categorias de erro), passo 5 (abrir navegador + polling de entitlement). `scribe-security`: revisão antes de fechar 3b e depois de 5. `scribe-reviewer`: revisão adversarial antes de declarar P3 concluído.
+
+### Pendências reais do proprietário (ver PENDENCIAS_USUARIO.md)
+Política de trial para "autenticado sem assinatura" e aprovação do Auth0 como novo fornecedor SaaS são bloqueios genuínos — só o proprietário decide. A dúvida sobre "áudio sem fala consome quota" **não bloqueia**: D006 já cobre isso via "efetivamente processado" (o áudio foi enviado à Gemini, custo real incorrido) — adotado o default do architect (consome), sinalizado pra confirmação, revertível numa linha se o proprietário discordar.
+
+O Passo 0 (Postgres/Drizzle/migração inicial) não depende de nenhuma das duas pendências acima — começa já nesta sessão.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*
