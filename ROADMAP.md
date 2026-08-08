@@ -29,10 +29,10 @@ O app real (`desktop/AionixScribe/`) existe e foi testado ao vivo pelo propriet�
 
 ## P2 — Produto
 - [ ] Painel principal (status, atalho ativo, últimas transcrições, atividade)
-- [ ] Histórico (visualizar, copiar, excluir, pesquisar)
-- [ ] Configurações (conta, áudio, atalhos, idioma, privacidade, inicialização)
+- [x] Histórico: `HistoryWindow` acessível pela bandeja, lista últimos ditados (até 200, `%LOCALAPPDATA%\AionixScribe\history.json`), copiar/excluir. Validado ao vivo. Pesquisa/filtro ainda não existe (só relevante quando o histórico crescer de verdade).
+- [ ] Configurações (conta, áudio, atalhos, idioma, privacidade, inicialização) — hoje só tem atalho (P1/D012); conta/áudio/idioma/privacidade/inicialização faltam
 - [ ] Onboarding com primeira transcrição guiada
-- [ ] Temas Light/Dark completos (não é inversão de cor)
+- [ ] Temas Light/Dark completos (não é inversão de cor) — hoje só existe um tema escuro fixo nas janelas (overlay/settings/histórico)
 
 ## P3 — Plataforma SaaS
 - [ ] Contas e autenticação

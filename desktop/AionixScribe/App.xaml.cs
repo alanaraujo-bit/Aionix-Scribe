@@ -15,6 +15,7 @@ public partial class App : System.Windows.Application
     private DispatcherTimer? _hideTimer;
     private Forms.ToolStripMenuItem? _pendingMenuItem;
     private SettingsWindow? _settingsWindow;
+    private HistoryWindow? _historyWindow;
 
     private enum AppState { Idle, Listening, Processing }
     private AppState _state = AppState.Idle;
@@ -141,6 +142,7 @@ public partial class App : System.Windows.Application
             Text = "Aionix Scribe",
         };
         var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Histórico...", null, (_, _) => OpenHistory());
         menu.Items.Add("Configurações...", null, (_, _) => OpenSettings());
         _pendingMenuItem = new Forms.ToolStripMenuItem("Reprocessar pendências", null, OnReprocessPendingClicked) { Enabled = false };
         menu.Items.Add(_pendingMenuItem);
@@ -244,6 +246,7 @@ public partial class App : System.Windows.Application
             {
                 await ClipboardInjector.InsertTextAsync(result.Text);
                 UpdateOverlay(OverlayState.Done);
+                HistoryStore.Add(result.Text);
             }
             return true;
         }
@@ -308,6 +311,17 @@ public partial class App : System.Windows.Application
             _overlay?.Hide();
         };
         _hideTimer.Start();
+    }
+
+    private void OpenHistory()
+    {
+        if (_historyWindow == null || !_historyWindow.IsLoaded)
+        {
+            _historyWindow = new HistoryWindow();
+            _historyWindow.Closed += (_, _) => _historyWindow = null;
+        }
+        _historyWindow.Show();
+        _historyWindow.Activate();
     }
 
     private void OpenSettings()
