@@ -92,4 +92,14 @@ Formato: contexto → alternativas → decisão → razão → consequência.
 - **Consequência**: uma UI para configurar/exibir o atalho manualmente continua necessária (P1/P2) — o mecanismo atual de fallback é resiliente, mas o usuário só descobre qual atalho está ativo por um balão de notificação ou um arquivo de log, o que não é uma solução de produto aceitável a longo prazo.
 - **Gap identificado durante o teste**: o ambiente de desenvolvimento inicial não tinha nenhum dispositivo de microfone (`WaveInEvent.DeviceCount == 0`) até o proprietário conectar um headset — isso expôs que o app não tinha tratamento para "sem microfone" (§29). Adicionado tratamento básico (try/catch com aviso ao usuário), mas ainda não testado a fundo (ver ROADMAP.md P1).
 
+---
+
+## D011 — Bug real em produção: Gemini retornava conteúdo vazio para áudio curto/ambíguo
+
+- **Contexto**: durante teste ao vivo do app real (D010), tanto uma gravação de teste automatizada quanto uma gravação manual do proprietário produziram erro 502 do backend ("Resposta da Gemini sem texto utilizável"). Os logs de produção (`railway logs`) mostraram a causa exata: `"candidates":[{"content":{},"finishReason":"STOP"}]` — a Gemini retornava sucesso (`finishReason: STOP`) mas com `content` vazio, tendo gasto todo o orçamento de tokens de saída em `thoughtsTokenCount` (raciocínio interno invisível) sem nunca emitir o texto final.
+- **Diagnóstico**: o modelo (`gemini-3.6-flash`, via alias `gemini-flash-latest`) é um modelo com "thinking" habilitado por padrão sem limite, e para uma tarefa direta de transcrição/limpeza (não uma tarefa de raciocínio complexo), esse "pensar" podia consumir o orçamento inteiro antes de produzir a resposta, especialmente em áudio curto ou ambíguo.
+- **Decisão**: adicionar `generationConfig.thinkingConfig.thinkingBudget: 256` na chamada à Gemini (`backend/src/gemini.ts`). Testado empiricamente: `thinkingBudget: 0` é rejeitado pela API (`400 INVALID_ARGUMENT` — este modelo não permite desabilitar thinking completamente), mas um orçamento pequeno e positivo (128–512) funciona e resolve o problema sem prejudicar a qualidade da transcrição.
+- **Defesa adicional**: mesmo com o orçamento limitado, se a Gemini ainda retornar `finishReason: STOP` sem texto, o backend agora trata isso como "nenhuma fala detectada" (resultado `text: ""`, HTTP 200) em vez de erro 502 — esse é um resultado plausível e não deveria disparar o mecanismo de retry/preservação de áudio do app (que é para falhas técnicas reais, não para "o usuário não falou nada compreensível"). Qualquer outro `finishReason` (SAFETY, RECITATION, etc.) sem texto continua sendo tratado como falha real.
+- **Validado em produção**: a mesma gravação que causava o 502 foi reprocessada com sucesso após o fix e deploy, retornando uma transcrição real e coerente.
+
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*

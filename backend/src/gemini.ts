@@ -41,6 +41,13 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
         parts: [{ text: TRANSCRIPTION_PROMPT }, { inline_data: { mime_type: mimeType, data: audioBase64 } }],
       },
     ],
+    // Transcrição/limpeza é uma tarefa direta, não de raciocínio — sem limitar o orçamento de
+    // "thinking", o modelo pode gastar todos os tokens de saída pensando e devolver conteúdo
+    // vazio (finishReason STOP, sem texto) para áudio curto/ambíguo. Visto em produção (ver
+    // DECISIONS.md D011). thinkingBudget baixo evita isso sem prejudicar a qualidade da limpeza.
+    generationConfig: {
+      thinkingConfig: { thinkingBudget: 256 },
+    },
   };
 
   const start = performance.now();
@@ -58,8 +65,25 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
   }
 
   const text: string | undefined = json?.candidates?.[0]?.content?.parts?.find((p: any) => typeof p.text === "string")?.text;
+  const finishReason = json?.candidates?.[0]?.finishReason;
+
+  // finishReason STOP com conteúdo vazio (sem texto) acontece em áudio curto/ambíguo — tratamos
+  // como "nenhuma fala detectada" (resultado normal), não como erro. Qualquer outro finishReason
+  // sem texto (SAFETY, RECITATION, etc.) ainda é reportado como falha real.
   if (typeof text !== "string") {
-    throw new GeminiError("Resposta da Gemini sem texto utilizável", 502, json);
+    if (finishReason === "STOP") {
+      return {
+        text: "",
+        modelVersion: json?.modelVersion ?? GEMINI_MODEL,
+        geminiLatencyMs,
+        usage: {
+          promptTokens: json?.usageMetadata?.promptTokenCount ?? 0,
+          candidateTokens: json?.usageMetadata?.candidatesTokenCount ?? 0,
+          totalTokens: json?.usageMetadata?.totalTokenCount ?? 0,
+        },
+      };
+    }
+    throw new GeminiError(`Resposta da Gemini sem texto utilizável (finishReason=${finishReason})`, 502, json);
   }
 
   return {

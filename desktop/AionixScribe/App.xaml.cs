@@ -13,6 +13,7 @@ public partial class App : System.Windows.Application
     private OverlayWindow? _overlay;
     private Forms.NotifyIcon? _tray;
     private DispatcherTimer? _hideTimer;
+    private Forms.ToolStripMenuItem? _pendingMenuItem;
 
     private enum AppState { Idle, Listening, Processing }
     private AppState _state = AppState.Idle;
@@ -79,12 +80,18 @@ public partial class App : System.Windows.Application
             Text = "Aionix Scribe",
         };
         var menu = new Forms.ContextMenuStrip();
+        _pendingMenuItem = new Forms.ToolStripMenuItem("Reprocessar pendências", null, OnReprocessPendingClicked) { Enabled = false };
+        menu.Items.Add(_pendingMenuItem);
+        menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Sair", null, (_, _) => Shutdown());
         _tray.ContextMenuStrip = menu;
+
+        RefreshPendingMenu();
     }
 
     private async void OnHotkeyTriggered()
     {
+        DebugLog.Write($"OnHotkeyTriggered, state={_state}");
         switch (_state)
         {
             case AppState.Idle:
@@ -120,6 +127,7 @@ public partial class App : System.Windows.Application
         UpdateOverlay(OverlayState.Processing);
 
         var wav = _recorder.Stop();
+        DebugLog.Write($"StopAndProcessAsync: wav bytes = {wav?.Length ?? -1}");
         if (wav == null || wav.Length == 0)
         {
             UpdateOverlay(OverlayState.Cancelled);
@@ -128,6 +136,34 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        var ok = await TryTranscribeAndInsertAsync(wav);
+        if (!ok)
+        {
+            // Uma falha isolada (rede/timeout) merece uma segunda tentativa automática antes de
+            // desistir — §23: falha técnica não deve custar a fala do usuário na primeira tentativa.
+            await Task.Delay(1000);
+            ok = await TryTranscribeAndInsertAsync(wav);
+        }
+
+        if (!ok)
+        {
+            PendingRecordings.Save(wav);
+            UpdateOverlay(OverlayState.Error, "Erro — gravação preservada");
+            _tray?.ShowBalloonTip(6000, "Aionix Scribe",
+                "Não consegui transcrever depois de duas tentativas. Sua gravação foi preservada — use \"Reprocessar pendências\" no menu da bandeja quando a conexão voltar.",
+                Forms.ToolTipIcon.Warning);
+            RefreshPendingMenu();
+        }
+
+        HideOverlayAfter(TimeSpan.FromSeconds(1.5));
+        _state = AppState.Idle;
+    }
+
+    /// Retorna true se transcreveu e inseriu com sucesso (mesmo que o resultado seja "sem fala").
+    /// Retorna false apenas em falha técnica real (rede, backend, timeout) — esse é o único caso
+    /// que justifica preservar o áudio para retry.
+    private async Task<bool> TryTranscribeAndInsertAsync(byte[] wav)
+    {
         try
         {
             var result = await _backend.TranscribeAsync(wav);
@@ -140,17 +176,47 @@ public partial class App : System.Windows.Application
                 await ClipboardInjector.InsertTextAsync(result.Text);
                 UpdateOverlay(OverlayState.Done);
             }
+            return true;
         }
         catch (Exception ex)
         {
-            UpdateOverlay(OverlayState.Error, "Erro: verifique sua conexão");
-            _tray?.ShowBalloonTip(4000, "Aionix Scribe", $"Falha ao transcrever: {ex.Message}", Forms.ToolTipIcon.Error);
+            DebugLog.Write($"TryTranscribeAndInsertAsync failed: {ex}");
+            return false;
         }
-        finally
+    }
+
+    private void RefreshPendingMenu()
+    {
+        if (_pendingMenuItem == null) return;
+        var count = PendingRecordings.List().Count;
+        DebugLog.Write($"RefreshPendingMenu: {count} pendências");
+        _pendingMenuItem.Text = count > 0 ? $"Reprocessar pendências ({count})" : "Reprocessar pendências";
+        _pendingMenuItem.Enabled = count > 0;
+    }
+
+    private async void OnReprocessPendingClicked(object? sender, EventArgs e)
+    {
+        var pending = PendingRecordings.List();
+        if (pending.Count == 0) return;
+
+        var path = pending[0];
+        _state = AppState.Processing;
+        ShowOverlay(OverlayState.Processing);
+
+        var wav = PendingRecordings.Read(path);
+        var ok = await TryTranscribeAndInsertAsync(wav);
+        if (ok)
         {
-            HideOverlayAfter(TimeSpan.FromSeconds(1.5));
-            _state = AppState.Idle;
+            PendingRecordings.Delete(path);
         }
+        else
+        {
+            _tray?.ShowBalloonTip(4000, "Aionix Scribe", "Ainda não consegui reprocessar essa gravação. Ela continua preservada.", Forms.ToolTipIcon.Warning);
+        }
+
+        HideOverlayAfter(TimeSpan.FromSeconds(1.5));
+        _state = AppState.Idle;
+        RefreshPendingMenu();
     }
 
     private void ShowOverlay(OverlayState state)
