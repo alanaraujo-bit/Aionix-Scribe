@@ -52,15 +52,18 @@ Hierarquia de valor (não é uma sequência rígida de datas). Cada fase só é 
 
 ## Pesquisa competitiva (Wispr Flow) — matriz de benchmark
 
-Preenchida na primeira sessão de trabalho; revisitada conforme o produto evolui. Ver seção correspondente abaixo quando disponível.
+Pass timeboxed via web (site oficial + reviews de terceiros, ago/2026). Não testamos o produto real — dados de segunda mão, marcados como tal. Revisitar com medições próprias conforme o produto evolui.
 
-| Dimensão | Wispr Flow (observado) | Aionix Scribe | Evidência |
+| Dimensão | Wispr Flow (observado/relatado) | Aionix Scribe | Evidência |
 |---|---|---|---|
-| ativação | — | — | pendente de teste |
-| inserção | — | — | pendente de teste |
-| UX de gravação | — | — | pendente de teste |
-| recuperação de erro | — | — | pendente de teste |
-| memória/CPU idle | — | — | pendente de benchmark |
-| precisão | — | — | pendente de golden dataset |
+| ativação | hotkey global, funciona em qualquer app, sem plugin | hotkey global configurável (a definir no spike) | site oficial |
+| feedback de gravação | overlay mostra "filler identified/correction identified/repetition identified" em tempo real | overlay com estados claros; ver §18 da diretiva | site oficial |
+| formatação | remove filler words, corrige pontuação/estrutura; "reads like you wrote it" | mesmo objetivo — pipeline com regra explícita de não alterar intenção | site oficial |
+| vocabulário/idiomas | vocabulário customizado; 100+ idiomas com auto-detecção | vocabulário customizado (P4); PT-BR como excelência primária, expansão gradual | site oficial |
+| onboarding | "polido", checklist de ações cross-app | onboarding com 1ª transcrição guiada (ver ROADMAP P2) | reviews de terceiros |
+| **confiabilidade (ponto fraco real)** | 75+ incidentes em 6 meses no caminho de transcrição; queda perceptível de qualidade após período de trial ("funciona 60% do tempo" após pagar); ponto único de falha no servidor de transcrição compartilhado | **diferencial-alvo**: preservar áudio localmente para retry (§23), degradar com transparência em vez de falhar silenciosamente, nunca depender de um único provedor sem fallback de UX | reviews/Trustpilot (2.7/5), getvoibe.com |
+| **desempenho no Windows (ponto fraco real)** | uso alto de CPU/RAM relatado; "uneven Windows reliability"; startup lento (8–10s) | **diferencial-alvo**: cold start rápido, idle leve — ver P0/P1 e budgets de performance (§58) | reviews de terceiros |
+| privacidade | modo privacidade anunciado, mas usuários relatam preocupações | minimizar retenção/coleta desde o design (§42), comunicar claramente | site oficial + reviews |
+| pricing | Free (2k palavras/semana), Pro (ilimitado), Teams, Enterprise | Essencial/Premium/Ultra, mensal/anual, Price IDs reais do Stripe (§47–52) | site oficial |
 
-*(Preenchida progressivamente — não é bloqueante para o P0.)*
+**Conclusão da pesquisa**: o gap de oportunidade real não é de features (Wispr já cobre bem o essencial) — é de **confiabilidade percebida ao longo do tempo** e **leveza no Windows**. Esses dois pontos devem ser tratados como requisitos de primeira classe do P0/P1, não polimento tardio.
