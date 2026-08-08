@@ -35,15 +35,17 @@ public partial class OverlayWindow : Window
     {
         (StatusText.Text, StatusDot.Fill) = state switch
         {
-            OverlayState.Listening => ("Ouvindo...", Brush("#4ADE80")),
-            OverlayState.Processing => ("Processando...", Brush("#FBBF24")),
-            OverlayState.Done => (detail ?? "Concluído", Brush("#4ADE80")),
-            OverlayState.Error => (detail ?? "Erro ao processar", Brush("#F87171")),
-            OverlayState.Cancelled => ("Cancelado", Brush("#9CA3AF")),
+            OverlayState.Listening => ("Ouvindo...", Brush("SuccessBrush")),
+            OverlayState.Processing => ("Processando...", Brush("WarningBrush")),
+            OverlayState.Done => (detail ?? "Concluído", Brush("SuccessBrush")),
+            OverlayState.Error => (detail ?? "Erro ao processar", Brush("ErrorBrush")),
+            OverlayState.Cancelled => ("Cancelado", Brush("MutedTextBrush")),
             _ => (StatusText.Text, StatusDot.Fill),
         };
         Dispatcher.InvokeAsync(PositionBottomCenter);
     }
 
-    private static SolidColorBrush Brush(string hex) => (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!;
+    // Via FindResource (não hex literal) para que o dot responda a uma troca de tema em Theme.xaml
+    // em vez de ficar preso à cor do modo escuro.
+    private System.Windows.Media.Brush Brush(string resourceKey) => (System.Windows.Media.Brush)FindResource(resourceKey);
 }

@@ -24,8 +24,7 @@ public partial class MainPanelWindow : Window
 
         var hasMic = WaveInEvent.DeviceCount > 0;
         MicStatusText.Text = hasMic ? "Microfone pronto" : "Nenhum microfone detectado";
-        MicStatusDot.Fill = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter()
-            .ConvertFromString(hasMic ? "#4ADE80" : "#F87171")!;
+        MicStatusDot.Fill = (System.Windows.Media.Brush)FindResource(hasMic ? "SuccessBrush" : "ErrorBrush");
 
         var recent = HistoryStore.List().Take(5)
             .Select(e => new RecentEntryViewModel { Text = e.Text, TimestampDisplay = e.TimestampUtc.ToLocalTime().ToString("dd/MM HH:mm") })
