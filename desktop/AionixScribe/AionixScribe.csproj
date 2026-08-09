@@ -10,10 +10,16 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>AionixScribe</AssemblyName>
     <RootNamespace>AionixScribe</RootNamespace>
+    <ApplicationIcon>Assets\AionixScribe.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Fonts\*.ttf" />
+    <Resource Include="Assets\AionixScribe.ico" />
   </ItemGroup>
 
 </Project>

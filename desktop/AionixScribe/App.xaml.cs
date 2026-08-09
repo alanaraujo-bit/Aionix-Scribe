@@ -96,12 +96,14 @@ public partial class App : System.Windows.Application
 
         if (_appliedLightTheme == useLight) return; // evita reflow/flicker ao reaplicar o mesmo tema
 
-        var dictionary = new ResourceDictionary
+        var themeDictionary = new ResourceDictionary
         {
             Source = new Uri(useLight ? "Theme.Light.xaml" : "Theme.Dark.xaml", UriKind.Relative)
         };
+        var stylesDictionary = new ResourceDictionary { Source = new Uri("Styles.xaml", UriKind.Relative) };
         Resources.MergedDictionaries.Clear();
-        Resources.MergedDictionaries.Add(dictionary);
+        Resources.MergedDictionaries.Add(themeDictionary);
+        Resources.MergedDictionaries.Add(stylesDictionary);
         _appliedLightTheme = useLight;
     }
 
@@ -274,7 +276,7 @@ public partial class App : System.Windows.Application
     {
         _tray = new Forms.NotifyIcon
         {
-            Icon = Drawing.SystemIcons.Application,
+            Icon = LoadTrayIcon(),
             Visible = true,
             Text = "Aionix Scribe",
         };
@@ -291,6 +293,23 @@ public partial class App : System.Windows.Application
         _tray.DoubleClick += (_, _) => OpenMainPanel();
 
         RefreshPendingMenu();
+    }
+
+    /// Ícone real embutido como Resource (build action) em vez de caminho de arquivo, pra não
+    /// depender de nenhum diretório existir ao lado do .exe em produção. Cai de volta pro ícone
+    /// genérico do sistema só se o pack resource falhar por algum motivo inesperado.
+    private static Drawing.Icon LoadTrayIcon()
+    {
+        try
+        {
+            using var stream = System.Windows.Application.GetResourceStream(new Uri("Assets/AionixScribe.ico", UriKind.Relative))?.Stream;
+            if (stream != null) return new Drawing.Icon(stream);
+        }
+        catch
+        {
+            // ignora e cai no fallback abaixo
+        }
+        return Drawing.SystemIcons.Application;
     }
 
     public void OpenMainPanel()
@@ -372,6 +391,18 @@ public partial class App : System.Windows.Application
         if (wav == null || wav.Length == 0)
         {
             UpdateOverlay(OverlayState.Cancelled);
+            HideOverlayAfter(TimeSpan.FromSeconds(1.2));
+            _state = AppState.Idle;
+            return;
+        }
+
+        // Portão local antes de gastar rede, tokens e cota do usuário: um toque acidental no atalho
+        // ou um push-to-talk mal encostado não deve virar uma chamada à IA. Pela regra do D006,
+        // "nenhuma fala detectada" consome cota — então cortar aqui é o que evita o custo de verdade.
+        if (!AudioRecorder.HasLikelySpeech(wav, out var skipReason))
+        {
+            DebugLog.Write($"StopAndProcessAsync: descartado sem enviar — {skipReason}");
+            UpdateOverlay(OverlayState.Cancelled, "Nenhuma fala detectada");
             HideOverlayAfter(TimeSpan.FromSeconds(1.2));
             _state = AppState.Idle;
             return;

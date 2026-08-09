@@ -1,51 +1,51 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Paleta clara construída como sistema próprio (ROADMAP P2, "não é inversão de cor"), não
-         como #14141E trocado por branco. Decisões:
+    <!-- v2 (recalibração pós-feedback "muito cartunizado" + referência real anexada pelo dono:
+         fundo quase-branco/creme, texto quase-preto, accent só em detalhes pontuais, botão
+         primário PRETO sólido — não a cor de marca). Construído JUNTO com Theme.Dark.xaml desta
+         vez, mesma leva de tokens, para nunca mais ficar um tema à frente do outro.
 
-         - Elevação de superfície sobe na MESMA direção do escuro (card mais claro que a janela),
-           só que a partir de um ponto de partida diferente: aqui a janela já é quase branca, então
-           o card vai a branco puro (#FFFFFF) em vez de "mais um degrau de cinza claro" — do
-           contrário o cartão desapareceria contra o fundo.
-         - Cores de estado (sucesso/erro/aviso) NÃO são os mesmos tons pastel do escuro — pastel
-           sobre fundo claro perde contraste de leitura. Usamos versões mais saturadas/escuras do
-           mesmo matiz, calibradas por contraste (WCAG) para igualar ou superar o contraste que a
-           versão escura tem contra o fundo escuro, não só "parecer parecido":
-             ErrorBrush   #F87171 (escuro, ~6.8:1 no fundo escuro) -> #B91C1C (~5.8:1 no fundo claro)
-             SuccessBrush #4ADE80 (escuro, ~9.8:1)                  -> #15803D (~4.5:1, texto grande/negrito)
-             WarningBrush é usado só como preenchimento de indicador (Ellipse), nunca como texto —
-             tem mais liberdade; #D97706 preserva o matiz âmbar sem ficar lavado sobre branco.
-         - MutedTextBrush e FootnoteTextBrush preservam a HIERARQUIA (muted mais proeminente que
-           footnote), não os valores: no escuro "mais proeminente" = mais claro; no claro "mais
-           proeminente" = mais escuro. #5B5B6B (muted, ~6.0:1) é mais escuro/contrastante que
-           #6E6E80 (footnote, ~4.5:1), replicando a mesma relação de ênfase que #9CA3AF vs #6B7280
-           tem no escuro.
-         - PrimaryTextBrush claro (#1A1A24) não é preto puro — ecoa o tom levemente azulado da
-           janela escura (#14141E), mantendo identidade visual entre os dois temas.
-         - ButtonBackgroundBrush/ButtonForegroundBrush NÃO se invertem com o tema: botões continuam
-           um "chip" escuro preenchido com texto claro nos dois modos (#4C4C63 no claro, mesmo
-           #2D2D3D no escuro — ambos escuros o bastante para sustentar ButtonForegroundBrush
-           branco). Decisão visual deliberada — ação/controle interativo como elemento de
-           identidade que não muda com o tema, não uma sobra do modo escuro. -->
+         - Elevação sobe na mesma direção do escuro (card mais claro que a janela) a partir de um
+           ponto de partida diferente: janela já quase branca, card vai a branco puro.
+         - Cores de estado mais saturadas/escuras que no escuro (pastel perde contraste em fundo
+           claro), calibradas por contraste, não só "parecer parecido".
+         - MutedTextBrush/FootnoteTextBrush preservam a HIERARQUIA (muted mais proeminente), não os
+           valores — no escuro "mais proeminente" = mais claro, no claro = mais escuro.
+         - Botão primário claro é preto quase puro com texto claro — ecoa a referência real (Wispr
+           Flow usa preto para "Sign in", "Upgrade to Pro" etc., não a cor de marca do produto).
+           Accent (roxo/coral) fica para links, ícones de estado e badges pontuais nos dois temas. -->
 
-    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#F3F3F7"/>
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FBFAF8"/>
     <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#4C4C63"/>
-    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#1A1A24"/>
-    <SolidColorBrush x:Key="MutedTextBrush" Color="#5B5B6B"/>
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#F1EFEB"/>
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#211F27"/>
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#5C596A"/>
+    <SolidColorBrush x:Key="FootnoteTextBrush" Color="#8A8794"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#C2551F"/>
+    <SolidColorBrush x:Key="AccentStrongBrush" Color="#A6461A"/>
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#1FC2551F"/>
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#14211F27"/>
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#24211F27"/>
     <SolidColorBrush x:Key="SuccessBrush" Color="#15803D"/>
     <SolidColorBrush x:Key="ErrorBrush" Color="#B91C1C"/>
-    <SolidColorBrush x:Key="WarningBrush" Color="#D97706"/>
-    <SolidColorBrush x:Key="FootnoteTextBrush" Color="#6E6E80"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#B45309"/>
 
-    <!-- Overlay flutuante aparece sobre QUALQUER janela em foco, não só sobre o próprio app —
-         precisa continuar legível mesmo sobre um navegador ou editor de fundo branco. Alfa mais
-         alto que no escuro (F0 vs E6) para não se misturar com conteúdo claro por trás, e borda
-         mais visível (alfa 4D vs 33) porque um contorno sutil de "vidro" desaparece com mais
-         facilidade contra fundos claros/coloridos do que contra o desktop, tipicamente escuro. -->
-    <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#F0F3F3F7"/>
-    <SolidColorBrush x:Key="OverlayBorderBrush" Color="#4D9C9CAE"/>
+    <SolidColorBrush x:Key="PrimaryButtonBackgroundBrush" Color="#211F27"/>
+    <SolidColorBrush x:Key="PrimaryButtonForegroundBrush" Color="#FBFAF8"/>
+    <SolidColorBrush x:Key="PrimaryButtonHoverBrush" Color="#35323D"/>
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#F1EFEB"/>
+    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#211F27"/>
+
+    <DropShadowEffect x:Key="Elevation1" Color="#211F27" Direction="270" BlurRadius="10" ShadowDepth="2" Opacity="0.10"/>
+    <DropShadowEffect x:Key="Elevation2" Color="#211F27" Direction="270" BlurRadius="20" ShadowDepth="6" Opacity="0.14"/>
+
+    <!-- Overlay flutuante aparece sobre QUALQUER janela em foco — precisa continuar legível mesmo
+         sobre um navegador ou editor de fundo escuro. Alfa alto pra não se misturar com conteúdo
+         por trás; borda visível porque um contorno sutil de "vidro" desaparece fácil sobre
+         fundos variados. -->
+    <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#F2FBFAF8"/>
+    <SolidColorBrush x:Key="OverlayBorderBrush" Color="#4D211F27"/>
 
 </ResourceDictionary>

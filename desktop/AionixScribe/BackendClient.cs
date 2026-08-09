@@ -11,11 +11,13 @@ public sealed class BackendClient : IDisposable
     // TODO(P3): mover para configuração por ambiente quando existir build de release separado de dev.
     private const string BaseUrl = "https://aionix-scribe-api-production.up.railway.app";
 
-    // Stopgap enquanto não existe conta/dispositivo real (P3): evita que a URL pública do endpoint
-    // seja usada por terceiros para queimar a cota da Gemini. Não é autenticação de usuário — o valor
-    // vive embutido no binário, mesma proteção que qualquer segredo de app cliente distribuído sem
-    // ofuscação. Precisa bater com DESKTOP_SHARED_SECRET no Railway (backend/.env.example).
-    private const string AppSecret = "0ae6425535c84a9b61bc006b35a5ce80485713bcfb41cca858cbbac4f1e2a476";
+    // Stopgap enquanto não existe conta/dispositivo real (P3, D013). ATENÇÃO: a partir do momento em
+    // que existe download público do app (release no GitHub), este valor deixa de ser proteção de
+    // verdade — qualquer pessoa extrai a string do .exe com `strings`. Ele continua aqui só para
+    // barrar chamada direta à URL por quem nunca baixou o app. A proteção real é o D018 Passo 3
+    // (Bearer/JWT) somado a um teto de gasto na própria chave da Gemini. Não trate como segredo.
+    // Precisa bater com DESKTOP_SHARED_SECRET no Railway (backend/.env.example).
+    private const string AppSecret = "73a2b19bdd2856312409f5b10d04c155da0894487d48a894f4a39155151876e7";
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
@@ -45,6 +47,17 @@ public sealed class BackendClient : IDisposable
         var totalMs = latency.GetProperty("totalMs").GetInt32();
         var geminiMs = latency.GetProperty("geminiMs").GetInt32();
         var clientLatencyMs = (int)(DateTime.UtcNow - clientStart).TotalMilliseconds;
+
+        // O backend já devolve usage; registrar aqui é o que permite comparar custo de entrada (áudio)
+        // contra saída/thinking com números reais em vez de estimativa — base para qualquer decisão
+        // futura de economia. Nenhum texto transcrito vai para o log, só a contagem de tokens.
+        if (root.TryGetProperty("usage", out var usage))
+        {
+            DebugLog.Write($"usage: prompt={usage.GetProperty("promptTokens").GetInt32()} " +
+                           $"candidate={usage.GetProperty("candidateTokens").GetInt32()} " +
+                           $"total={usage.GetProperty("totalTokens").GetInt32()} " +
+                           $"audioBytes={wavAudio.Length}");
+        }
 
         return new TranscribeResponse(text, totalMs, geminiMs, clientLatencyMs);
     }

@@ -2,10 +2,23 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 const TRANSCRIPTION_PROMPT = `Você é o motor de transcrição do Aionix Scribe, um ditado por voz inteligente.
-Transcreva o áudio a seguir para português do Brasil, transformando fala natural em texto útil:
+Transcreva o áudio a seguir, transformando fala natural em texto útil.
+
+IDIOMA (regra mais importante):
+- Você é um transcritor, NUNCA um tradutor. Escreva no MESMO idioma em que a pessoa falou.
+- Se a fala for em português, o texto sai inteiro em português. Se for em inglês, sai inteiro em inglês.
+- Termos técnicos, nomes de produtos, siglas e nomes próprios ditos em outro idioma ficam exatamente
+  como foram ditos (ex.: "fiz o deploy", "abre um pull request", "roda o build") — isso não é misturar
+  idiomas, é o vocabulário real da pessoa. NÃO traduza esses termos nem para o português nem para o inglês.
+- Fora esses termos, não misture idiomas: a estrutura da frase (verbos, conectivos, pontuação) segue
+  o idioma principal da fala.
+- Se não der para identificar o idioma com confiança, use português do Brasil.
+
+LIMPEZA:
 - remova hesitações, repetições acidentais, falsos começos e pausas de preenchimento (tipo "é...", "então...", "deixa eu pensar...");
 - adicione pontuação, capitalização e estrutura de frase corretas;
 - NUNCA altere a intenção do usuário nem invente conteúdo que não foi dito.
+
 Responda APENAS com o texto final limpo, sem comentários, sem aspas, sem explicações.`;
 
 export interface TranscribeResult {

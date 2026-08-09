@@ -1,0 +1,177 @@
+<!--
+    Estilos tipográficos e de controle compartilháveis, sem cor "hardcoded" fora dos
+    DynamicResource de brush — reaproveitável nos dois temas (Theme.Dark.xaml/Theme.Light.xaml,
+    ambos calibrados juntos desde a v2) e nas demais janelas quando migrarem.
+
+    v2 (pós-feedback "muito cartunizado"): botão primário deixou de usar gradiente/glow —
+    referência real (Wispr Flow) usa um preenchimento neutro de alto contraste para CTAs
+    primários, cor de marca só em detalhes pontuais. Hover deixou de ter animação de escala —
+    minimalismo pedido explicitamente inclui não ter movimento decorativo onde a referência não
+    tem nenhum.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style x:Key="TitlebarLabelStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="./Fonts/#Sora SemiBold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+    </Style>
+
+    <Style x:Key="TitleTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="./Fonts/#Fraunces 9pt SemiBold"/>
+        <Setter Property="FontSize" Value="25"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+    </Style>
+
+    <Style x:Key="TaglineTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="./Fonts/#Sora"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+    </Style>
+
+    <Style x:Key="BodyTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="./Fonts/#Sora"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+    </Style>
+
+    <Style x:Key="BodyMutedTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+    </Style>
+
+    <Style x:Key="BodyEmphasisTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextStyle}">
+        <Setter Property="FontFamily" Value="./Fonts/#Sora SemiBold"/>
+    </Style>
+
+    <Style x:Key="EyebrowTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="./Fonts/#Sora SemiBold"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+    </Style>
+
+    <Style x:Key="FootnoteTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="./Fonts/#Sora"/>
+        <Setter Property="FontSize" Value="10.5"/>
+        <Setter Property="Foreground" Value="{DynamicResource FootnoteTextBrush}"/>
+    </Style>
+
+    <!--
+        Effect aplicado direto num Border com texto força esse texto por uma superfície de render
+        intermediária e derruba o ClearType (texto fica visivelmente acinzentado/mole — exatamente
+        o efeito "barato" que o dono rejeitou). Por isso a sombra vive num Border irmão, sem
+        filhos, atrás do Border de conteúdo — CardTemplate abaixo monta essa estrutura via
+        ControlTemplate de um Border customizado não é possível (Border não tem Template), então
+        o card é montado como um par Grid > (Border sombra, Border conteúdo) diretamente no XAML
+        que consome estes estilos, com CardShadowStyle no de trás e CardContentStyle no da frente.
+    -->
+    <Style x:Key="CardShadowStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Effect" Value="{DynamicResource Elevation1}"/>
+    </Style>
+
+    <Style x:Key="CardContentStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Padding" Value="16"/>
+    </Style>
+
+    <Style x:Key="RecentItemShadowStyle" TargetType="Border" BasedOn="{StaticResource CardShadowStyle}">
+        <Setter Property="CornerRadius" Value="14"/>
+    </Style>
+
+    <Style x:Key="RecentItemContentStyle" TargetType="Border" BasedOn="{StaticResource CardContentStyle}">
+        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="Padding" Value="10"/>
+    </Style>
+
+    <Style x:Key="TitlebarButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+        <Setter Property="FontFamily" Value="./Fonts/#Sora"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="14">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource PrimaryButtonBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryButtonForegroundBrush}"/>
+        <Setter Property="FontFamily" Value="./Fonts/#Sora SemiBold"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="10">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"
+                                          TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                          TextElement.FontSize="{TemplateBinding FontSize}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource PrimaryButtonHoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GhostButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ButtonForegroundBrush}"/>
+        <Setter Property="FontFamily" Value="./Fonts/#Sora SemiBold"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="10">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"
+                                          TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                          TextElement.FontSize="{TemplateBinding FontSize}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

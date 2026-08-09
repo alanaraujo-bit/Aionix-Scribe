@@ -223,3 +223,37 @@ Política de trial para "autenticado sem assinatura" e aprovação do Auth0 como
 O Passo 0 (Postgres/Drizzle/migração inicial) não depende de nenhuma das duas pendências acima — começa já nesta sessão.
 
 *Novas decisões de impacto significativo serão adicionadas a este arquivo conforme o projeto avança.*
+
+---
+
+## D019 — Política de idioma na transcrição e portão local de silêncio
+
+*Motivada por dois pedidos do proprietário: (a) o texto às vezes saía misturando português e inglês, sem lógica clara; (b) "quando for algo muito simples, não mandar pra IA arrumar, pra economizar".*
+
+### Constatação que reformula o pedido (b)
+Não existe um passo de "arrumar" separado para pular. `/api/transcribe` faz **uma única** chamada à Gemini que transcreve e limpa ao mesmo tempo — sem ela não há texto nenhum. O custo dominante é o áudio de entrada, pago independentemente de o resultado ser simples ou complexo. Logo, "detectar que é simples e não chamar a IA" não é implementável sem trocar a arquitetura por um estágio de STT local + limpeza condicional (mudança grande, território de P4, não feita agora).
+
+O que **é** evitável: a chamada que nunca deveria ter saído da máquina. Implementado como portão local antes do HTTP.
+
+### Decisão 1 — Prompt transcreve, nunca traduz
+`TRANSCRIPTION_PROMPT` dizia "Transcreva o áudio a seguir **para** português do Brasil" — instrução de *tradução*, causa provável tanto de fala em inglês sair em português quanto de estrangeirismos serem "corrigidos" de forma inconsistente. Substituída por uma seção IDIOMA explícita: escrever no mesmo idioma falado; nunca traduzir; termos técnicos, nomes de produto, siglas e nomes próprios ficam exatamente como ditos ("fiz o deploy", "abre um pull request") — isso é o vocabulário real da pessoa, não mistura de idiomas; fora esses termos, a estrutura da frase segue um idioma só; fallback pt-BR quando o idioma não for identificável com confiança.
+
+Custo: o prompt ficou ~3x maior, algumas centenas de tokens de entrada a mais por chamada. Provavelmente irrelevante perto do áudio — mas é medível agora (ver Decisão 3), não estimado.
+
+### Decisão 2 — Portão local de fala (`AudioRecorder.HasLikelySpeech`)
+Rejeita antes do HTTP: áudio vazio, gravação < 0,6s, ou pico de energia abaixo do limiar. Isso é uma **mudança de regra de negócio, não só otimização**: pelo D006, "nenhuma fala detectada" consome cota — então até agora um toque acidental no atalho custava minutos do usuário. Áudio que não sai da máquina não pode consumir cota.
+
+Duas armadilhas encontradas e resolvidas (a primeira só apareceu porque o Advisor exigiu prova offline em vez de aceitar build limpo):
+- **Cabeçalho WAV não tem 44 bytes.** O `WaveFileWriter` do NAudio grava o chunk `fmt ` com 18 bytes (inclui `cbSize`), então o cabeçalho real é **46**. Pular 44 fixo desalinha cada amostra em um byte, o byte baixo vira byte alto, e silêncio digital lê como energia altíssima — o portão aprovaria tudo, para sempre, sem erro e sem nada estranho no log. Corrigido percorrendo os chunks RIFF até achar `data`. Medido, não deduzido: teste offline imprime 46.
+- **RMS global é a estatística errada.** Uma gravação de 25s com fala só nos últimos 3s tem a média diluída pelo silêncio e seria descartada — fala real perdida, exatamente o oposto do objetivo. Critério trocado para **pico de RMS em janelas de 100ms**.
+
+Limiar deliberadamente conservador (RMS 90; fala fica na casa dos milhares, ruído de sala abaixo de ~50): preferimos deixar passar um áudio duvidoso a engolir fala baixa.
+
+Validado offline com WAVs gerados pelo mesmo caminho `WaveFileWriter`/`WaveFormat(16000,16,1)` do `AudioRecorder.Start`: silêncio digital, ruído baixo, tom alto, tom curto demais, silêncio longo com fala só no fim, e WAV só com cabeçalho — 6/6.
+
+### Decisão 3 — Instrumentar antes de otimizar mais
+`BackendClient` passa a registrar `usage` (prompt/candidate/total tokens + bytes de áudio) no `DebugLog`, sem nenhum texto transcrito. Sem isso, qualquer discussão futura sobre economia (baixar `thinkingBudget`, modelo mais barato para clipes curtos, STT local) seria baseada em estimativa. Duas gravações reais — uma curta, uma longa — respondem qual fração é áudio de entrada versus saída/thinking.
+
+### Pendências desta decisão
+- **Validação ao vivo obrigatória antes de considerar fechado**: o golden dataset não existe (P0), então esta mudança de prompt pode regredir remoção de hesitação/pontuação sem nada detectar. Precisa de 4 gravações reais do proprietário: pt-BR **curta** (célula onde o D011 já viu resposta vazia, e o prompt novo pede mais deliberação com `thinkingBudget` ainda em 256), pt-BR com termos técnicos em inglês, inglês puro, e uma gravação de silêncio (confirmar que não sai da máquina — `debug.log` mostra "descartado sem enviar").
+- **`GEMINI_MODEL` usa o alias flutuante `gemini-flash-latest`**: o comportamento do produto pode mudar sem deploy nosso, e "às vezes" inconsistente combina tanto com prompt vago quanto com alias mudando debaixo do pé. Fixar uma versão explícita é barato e para de depurar alvo móvel — não feito aqui por não ser decisão de engenharia isolada (muda o modelo em produção).

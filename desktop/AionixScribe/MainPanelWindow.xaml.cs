@@ -38,4 +38,9 @@ public partial class MainPanelWindow : Window
 
     private void OnHistoryClicked(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).OpenHistory();
     private void OnSettingsClicked(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).OpenSettings();
+
+    private void OnMinimizeClicked(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    private void OnCloseClicked(object sender, RoutedEventArgs e) => Close();
+
+    private void OnWindowLoaded(object sender, RoutedEventArgs e) => Motion.PlayEntrance(RootContent);
 }
