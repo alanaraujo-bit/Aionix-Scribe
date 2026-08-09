@@ -150,6 +150,37 @@
                 </StackPanel>
             </Border>
         </Grid>
+
+        <!-- SOBRE -->
+        <TextBlock Text="Sobre" Style="{StaticResource SectionTitleTextStyle}" Margin="0,20,0,3"/>
+        <TextBlock Text="Versão instalada e atualizações." Style="{StaticResource BodyMutedTextStyle}"
+                   FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+        <Grid>
+            <Border Style="{StaticResource CardShadowStyle}"/>
+            <Border Style="{StaticResource CardContentStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Aionix Scribe" Style="{StaticResource BodyTextStyle}" VerticalAlignment="Center"/>
+                        <Border Grid.Column="1" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="8" Padding="10,5">
+                            <TextBlock x:Name="AppVersionText" Text="—" FontFamily="./Fonts/#Sora SemiBold"
+                                       FontSize="12" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                        </Border>
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="CheckUpdateButton" Content="Buscar atualizações" Click="OnCheckUpdateClicked"
+                                Style="{StaticResource CompactGhostButtonStyle}" Margin="0,0,12,0"/>
+                        <TextBlock x:Name="UpdateStatusText" Style="{StaticResource BodyMutedTextStyle}"
+                                   FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
     </StackPanel>
 </ScrollViewer>
 </UserControl>

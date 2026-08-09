@@ -47,9 +47,28 @@ public partial class App : System.Windows.Application
         (Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_SHIFT, 0x44, "Ctrl+Alt+Shift+D"),
     };
 
+    /// Manifesto da versão nova, quando existe uma. Lido pelo painel de atualização.
+    public UpdateManifest? PendingUpdate { get; private set; }
+
+    private static Mutex? _singleInstanceMutex;
+    private DispatcherTimer? _updateTimer;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Instância única. Vira obrigatório com a atualização automática: o instalador reabre o app
+        // ao terminar (RestartApplications) e a chave HKCU\...\Run também pode disparar — duas
+        // instâncias competiriam pelo MESMO atalho global, e a segunda falharia em registrá-lo,
+        // deixando o usuário com um "sem atalho disponível" sem explicação.
+        _singleInstanceMutex = new Mutex(initiallyOwned: true, "Local\\AionixScribe.SingleInstance", out var isFirst);
+        if (!isFirst)
+        {
+            DebugLog.Write("Outra instância já está rodando — encerrando esta.");
+            Shutdown();
+            return;
+        }
+
         ApplyTheme(); // primeiro, antes de qualquer janela (onboarding pode abrir logo em seguida)
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         DispatcherUnhandledException += OnDispatcherUnhandledException;
@@ -67,6 +86,57 @@ public partial class App : System.Windows.Application
 
         RegisterHotkeyWithFallback();
         MaybeShowOnboarding();
+        StartUpdateChecks();
+    }
+
+    /// Primeira verificação com atraso para não competir com o startup (registro de atalho, bandeja,
+    /// onboarding), e depois de 6 em 6 horas — o app costuma ficar dias aberto na bandeja, então
+    /// verificar só na inicialização deixaria quem nunca reinicia sem nunca saber de versão nova.
+    private void StartUpdateChecks()
+    {
+        _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
+        _updateTimer.Tick += async (_, _) => await CheckForUpdateAsync();
+        _updateTimer.Start();
+
+        var firstCheck = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        firstCheck.Tick += async (s, _) =>
+        {
+            ((DispatcherTimer)s!).Stop();
+            await CheckForUpdateAsync();
+        };
+        firstCheck.Start();
+    }
+
+    /// Registra o manifesto e leva o usuário ao painel de novidades. Usado pelo botão "Buscar
+    /// atualizações" (Configurações e bandeja), que é um pedido explícito — por isso navega direto
+    /// em vez de só acender o selo.
+    public void ShowPendingUpdate(UpdateManifest manifest)
+    {
+        PendingUpdate = manifest;
+        _mainPanel?.SetUpdateAvailable(true);
+        OpenMainPanel(PanelSection.Update);
+    }
+
+    private async Task CheckForUpdateAsync()
+    {
+        var manifest = await UpdateService.CheckAsync();
+        if (manifest == null) return;
+
+        var isNew = PendingUpdate?.Version != manifest.Version;
+        PendingUpdate = manifest;
+
+        // O selo aparece SEMPRE que há versão nova, mesmo adiada.
+        _mainPanel?.SetUpdateAvailable(true);
+
+        // Já o aviso (balão) respeita o "lembrar depois" — e só toca uma vez por versão detectada,
+        // não a cada verificação de 6 horas.
+        if (!isNew || UpdateSettings.IsSnoozed(manifest.Version)) return;
+
+        _tray?.ShowBalloonTip(9000, "Aionix Scribe",
+            string.IsNullOrWhiteSpace(manifest.Headline)
+                ? $"A versão {manifest.Version} está disponível. Abra o app para ver o que mudou."
+                : $"Versão {manifest.Version}: {manifest.Headline}",
+            Forms.ToolTipIcon.Info);
     }
 
     /// Não usa ShowDialog — o onboarding é uma janela comum, o usuário pode ignorá-la e continuar
@@ -286,6 +356,21 @@ public partial class App : System.Windows.Application
         _pendingMenuItem = new Forms.ToolStripMenuItem("Reprocessar pendências", null, OnReprocessPendingClicked) { Enabled = false };
         menu.Items.Add(_pendingMenuItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Buscar atualizações...", null, async (_, _) =>
+        {
+            // Verificação manual: ignora o "lembrar depois" e sempre dá uma resposta — quem clica
+            // aqui está perguntando de propósito e merece saber que está atualizado.
+            var manifest = await UpdateService.CheckAsync();
+            if (manifest == null)
+            {
+                _tray?.ShowBalloonTip(5000, "Aionix Scribe",
+                    $"Você já está na versão mais recente ({UpdateService.CurrentVersionDisplay}).", Forms.ToolTipIcon.Info);
+                return;
+            }
+            UpdateSettings.Clear();
+            ShowPendingUpdate(manifest);
+        });
+        menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Sair", null, (_, _) => Shutdown());
         _tray.ContextMenuStrip = menu;
         _tray.DoubleClick += (_, _) => OpenMainPanel();
@@ -316,6 +401,9 @@ public partial class App : System.Windows.Application
         {
             _mainPanel = new MainPanelWindow();
             _mainPanel.Closed += (_, _) => _mainPanel = null;
+            // A verificação roda com a janela fechada — ao abrir, o selo precisa refletir o que já
+            // foi descoberto, senão só apareceria depois da próxima checagem de 6 horas.
+            _mainPanel.SetUpdateAvailable(PendingUpdate != null);
             _mainPanel.Navigate(section);
         }
         else

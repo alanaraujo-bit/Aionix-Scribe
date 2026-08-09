@@ -1,0 +1,27 @@
+{
+  "version": "0.3.0",
+  "headline": "O Aionix Scribe agora avisa quando tem versão nova",
+  "summary": "Antes, uma melhoria só chegava até você se alguém te avisasse e você baixasse o instalador de novo. Agora o app percebe sozinho e atualiza com um clique, sem sair do lugar.",
+  "highlights": [
+    {
+      "title": "Aviso dentro do próprio app",
+      "body": "Quando sai uma versão nova, aparece um selo no topo da janela e um aviso discreto na bandeja. Nada de precisar acompanhar o repositório para saber que algo mudou."
+    },
+    {
+      "title": "Você vê o que mudou antes de decidir",
+      "body": "Este painel que você está lendo é a novidade: cada versão explica o que melhorou e por quê, em vez de só pedir para atualizar sem dizer o motivo."
+    },
+    {
+      "title": "Atualizar não interrompe seu trabalho",
+      "body": "A atualização baixa em segundo plano, o app fecha e reabre sozinho em poucos segundos. Seu histórico de ditados, o atalho escolhido e o tema continuam exatamente como estavam."
+    },
+    {
+      "title": "Adiar sem esquecer",
+      "body": "Se não for a hora, \"Lembrar depois\" silencia o aviso por 24 horas — mas o selo continua no topo, então a atualização nunca some de vista nem volta a incomodar antes do tempo."
+    },
+    {
+      "title": "Instalador de verdade",
+      "body": "O Aionix Scribe passou a ser instalado como um programa normal do Windows, com atalho no menu Iniciar e desinstalação limpa — e ficou bem menor para baixar."
+    }
+  ]
+}

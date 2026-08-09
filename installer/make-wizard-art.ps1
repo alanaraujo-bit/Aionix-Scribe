@@ -1,4 +1,4 @@
-# Gera as imagens do assistente do instalador (BMP, formato que o Inno Setup exige) usando a
+﻿# Gera as imagens do assistente do instalador (BMP, formato que o Inno Setup exige) usando a
 # paleta e as fontes REAIS do projeto — as mesmas Fraunces/Sora que o app usa, carregadas do
 # diretório Fonts/ via PrivateFontCollection, sem depender de estarem instaladas no Windows.
 #

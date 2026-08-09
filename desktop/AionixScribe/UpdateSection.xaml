@@ -1,0 +1,78 @@
+<UserControl x:Class="AionixScribe.UpdateSection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="./Fonts/#Sora">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+        <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}"/>
+        </ScrollViewer.Resources>
+
+        <StackPanel Margin="28,26,24,28">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="6" Padding="8,3">
+                    <TextBlock x:Name="VersionBadgeText" Text="versão —" FontFamily="./Fonts/#Sora SemiBold"
+                               FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
+                </Border>
+                <TextBlock x:Name="ReleasedAtText" Style="{StaticResource FootnoteTextStyle}"
+                           VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </StackPanel>
+
+            <TextBlock x:Name="HeadlineText" Text="Uma nova versão está disponível"
+                       Style="{StaticResource TitleTextStyle}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+            <TextBlock x:Name="SummaryText" Style="{StaticResource TaglineTextStyle}"
+                       TextWrapping="Wrap" LineHeight="19" Margin="0,0,0,22"/>
+
+            <TextBlock Text="O QUE MUDOU" Style="{StaticResource EyebrowTextStyle}" Margin="4,0,0,10"/>
+            <ItemsControl x:Name="HighlightsList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,0,0,8">
+                            <Border Style="{StaticResource RecentItemShadowStyle}"/>
+                            <Border Style="{StaticResource RecentItemContentStyle}" Padding="16,14">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Grid.Column="0" Width="6" Height="6" Fill="{DynamicResource AccentBrush}"
+                                             VerticalAlignment="Top" Margin="0,7,12,0"/>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource BodyEmphasisTextStyle}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Body}" Style="{StaticResource BodyMutedTextStyle}"
+                                                   FontSize="12" TextWrapping="Wrap" LineHeight="18" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Barra de progresso e mensagem de erro ocupam o mesmo lugar dos botões: durante a
+                 instalação não há nada para o usuário decidir. -->
+            <StackPanel x:Name="ProgressPanel" Visibility="Collapsed" Margin="0,20,0,0">
+                <TextBlock x:Name="ProgressText" Text="Baixando a atualização..." Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
+                <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="4" Height="6">
+                    <Border x:Name="ProgressFill" Background="{DynamicResource AccentBrush}" CornerRadius="4"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+                <TextBlock Style="{StaticResource FootnoteTextStyle}" TextWrapping="Wrap" Margin="0,10,0,0"
+                           Text="O app vai fechar sozinho para concluir a instalação e abrir de novo em seguida. Seu histórico e suas configurações são preservados."/>
+            </StackPanel>
+
+            <TextBlock x:Name="ErrorText" Style="{StaticResource BodyTextStyle}" FontSize="12"
+                       Foreground="{DynamicResource ErrorBrush}" TextWrapping="Wrap"
+                       Margin="0,16,0,0" Visibility="Collapsed"/>
+
+            <StackPanel x:Name="ActionsPanel" Orientation="Horizontal" Margin="0,20,0,0">
+                <Button x:Name="UpdateButton" Content="Atualizar agora" Style="{StaticResource PrimaryButtonStyle}"
+                        Margin="0,0,10,0" Click="OnUpdateClicked"/>
+                <Button x:Name="LaterButton" Content="Lembrar depois" Style="{StaticResource GhostButtonStyle}"
+                        Click="OnLaterClicked"/>
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource FootnoteTextStyle}" TextWrapping="Wrap" Margin="0,14,0,0" LineHeight="15"
+                       Text="Ao adiar, o aviso fica quieto por 24 horas — mas o selo de atualização continua visível no topo até você atualizar."/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

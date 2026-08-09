@@ -58,6 +58,32 @@ public partial class SettingsSection : System.Windows.Controls.UserControl
         RefreshMicrophoneList();
         RefreshStartupState();
         RefreshThemeSelection();
+        AppVersionText.Text = UpdateService.CurrentVersionDisplay;
+        UpdateStatusText.Text = "";
+    }
+
+    /// Verificação sob demanda. Diferente da automática, esta sempre responde alguma coisa: quem
+    /// clica aqui está perguntando de propósito e ficar em silêncio pareceria que o botão não fez nada.
+    private async void OnCheckUpdateClicked(object sender, RoutedEventArgs e)
+    {
+        CheckUpdateButton.IsEnabled = false;
+        UpdateStatusText.Text = "Verificando...";
+        try
+        {
+            var manifest = await UpdateService.CheckAsync();
+            if (manifest == null)
+            {
+                UpdateStatusText.Text = $"Você está na versão mais recente.";
+                return;
+            }
+
+            UpdateSettings.Clear(); // pedido explícito ignora um "lembrar depois" anterior
+            ((App)System.Windows.Application.Current).ShowPendingUpdate(manifest);
+        }
+        finally
+        {
+            CheckUpdateButton.IsEnabled = true;
+        }
     }
 
     private void RefreshThemeSelection()

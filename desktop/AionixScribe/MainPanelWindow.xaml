@@ -35,6 +35,30 @@
                        Style="{StaticResource TitlebarLabelStyle}"/>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,8,0" VerticalAlignment="Center">
+                <!-- Selo de atualização: fica visível enquanto houver versão nova, mesmo depois de
+                     "lembrar depois" (adiar silencia o aviso, não o selo). -->
+                <Button x:Name="UpdateBadge" Visibility="Collapsed" Margin="0,0,10,0" Cursor="Hand"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnUpdateBadgeClicked"
+                        ToolTip="Uma nova versão está disponível" Background="Transparent" BorderThickness="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Pill" Background="{DynamicResource AccentSoftBrush}" CornerRadius="8" Padding="10,5">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                    <TextBlock x:Name="PillText" Text="Atualizar" FontFamily="./Fonts/#Sora SemiBold"
+                                               FontSize="11.5" Foreground="{DynamicResource AccentBrush}"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Pill" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="PillText" Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
                 <Button Style="{StaticResource TitlebarButtonStyle}"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnMinimizeClicked" ToolTip="Minimizar">
                     <TextBlock Text="&#x2013;" FontSize="15"/>

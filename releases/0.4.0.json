@@ -1,0 +1,15 @@
+{
+  "version": "0.4.0",
+  "headline": "Agora dá para ver em que versão você está",
+  "summary": "Uma adição pequena, mas que faltava: Configurações passou a mostrar a versão instalada e a permitir procurar atualizações na hora, sem esperar a verificação automática.",
+  "highlights": [
+    {
+      "title": "A versão instalada fica à vista",
+      "body": "Em Configurações → Sobre, o número da versão aparece direto na tela. Serve para conferir se uma atualização realmente entrou e para dizer em qual versão você está quando algo der errado."
+    },
+    {
+      "title": "Procurar atualização na hora",
+      "body": "Um botão em Configurações (e também no menu da bandeja) verifica na mesma hora, em vez de esperar a checagem automática. Se já estiver na versão mais recente, ele responde isso em vez de ficar em silêncio."
+    }
+  ]
+}

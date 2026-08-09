@@ -325,3 +325,40 @@ Compilação, instalação silenciosa (código de saída 0), executável em `{lo
 
 ### Ainda não feito (próximo passo)
 O mecanismo de atualização automática em si — verificação de versão nova, painel do "o que mudou", adiar/lembrar depois e o selo permanente de atualização. Foi para o passo seguinte porque não dá para testar atualização sem existir primeiro uma instalação de onde atualizar.
+
+---
+
+## D022 — Atualização automática: verificação, painel de novidades e instalação silenciosa
+
+*Pedido do proprietário: avisar dentro do app quando sai versão nova, com um painel explicando o que melhorou, opção de adiar, e um selo permanente de atualização.*
+
+### Decisão 1 — Manifesto estruturado, não texto do release
+Cada release publica um `update.json` com **nome fixo**, então `/releases/latest/download/update.json` sempre aponta para a versão mais recente. Duas alternativas descartadas: a API do GitHub (limite de requisições por IP, e o app verifica de 6 em 6 horas em milhares de máquinas) e interpretar o corpo em markdown do release (renderizar markdown em WPF é trabalhoso e frágil). Com manifesto, o "o que mudou" chega **estruturado** — título e explicação por item — que é exatamente o que o painel precisa para não ser só "há uma atualização".
+
+### Decisão 2 — Fonte única do "o que mudou"
+`releases/<versão>.json` é escrito à mão e o `scripts/release.ps1` gera **as duas coisas** dele: o corpo em markdown do release no GitHub e o `update.json` lido pelo app. Se cada um fosse escrito separadamente, divergiriam e o painel dentro do app passaria a mentir sobre o que mudou. O script também recusa publicar se a versão das notas diferir da versão compilada.
+
+### Decisão 3 — Segurança do caminho "baixar e executar"
+Este é o único ponto do produto que baixa um binário e o executa. Três travas:
+- **SHA-256 obrigatório**: hash ausente falha igual a hash errado. Se pudesse ser omitido, bastaria um manifesto sem o campo para desligar a verificação inteira.
+- **Lista de hosts permitidos** (`github.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com`) + exigência de HTTPS: um manifesto pode declarar qualquer `setupUrl`, e sem essa lista um erro futuro na hospedagem do manifesto viraria execução remota de código em toda máquina instalada.
+- **`setupUrl` aponta para o ativo versionado**, não para `/latest/`: com `/latest/`, o manifesto da 0.3.0 passaria a apontar para o instalador da 0.4.0 assim que ela saísse, e a verificação de integridade falharia.
+
+### Decisão 4 — Instância única passou a ser obrigatória
+O instalador reabre o app ao terminar (`RestartApplications`) e a chave `HKCU\...\Run` também pode disparar. Duas instâncias competiriam pelo **mesmo atalho global**, e a segunda falharia em registrá-lo — o usuário veria "sem atalho disponível" sem explicação nenhuma. Mutex nomeado no startup resolve; sem a atualização automática isso era só higiene, com ela é carga estrutural.
+
+### Decisão 5 — Adiar silencia o aviso, nunca o selo
+Exatamente o que foi pedido: "pode marcar pra depois e relembrar, mas sempre ia ficar uma taginha". Adiar guarda `versão + prazo de 24h` e suprime só o balão da bandeja; o selo no topo da janela fica enquanto houver versão nova. Guardar a **versão** junto com o prazo faz uma release mais nova avisar na hora, em vez de herdar o silêncio da anterior. Não existe "pular esta versão" — seria o oposto do pedido.
+
+### Comparação de versão
+Normalizada para 3 componentes antes de comparar: o assembly carimba `0.4.0.0` e o manifesto traz `"0.4.0"`; comparar direto faria `0.4.0 < 0.4.0.0`. Versão remota **menor ou igual** não é atualização — sem isso, um manifesto em cache velho ou um release publicado errado reinstalaria a mesma versão em laço. Falha de rede, JSON inválido ou versão ilegível resultam em "sem atualização": "não sei" nunca vira "tem atualização".
+
+### Incidente durante a validação (vale registrar)
+A verificação passou a falhar com 404 e a causa não era o código: **o repositório tinha sido tornado privado**. Ativos de release em repositório privado exigem autenticação, e o app de um usuário qualquer não tem token. Isso vale para o botão de download do futuro site também. Conclusão que fica: **o que precisa ser público são os ativos do release**, não necessariamente o código — se um dia o código fechar, os releases precisam migrar para um repositório público separado ou outra hospedagem.
+
+### Validado ao vivo (duas releases reais, 0.3.0 → 0.4.0)
+- 0.3.0 instalada busca o manifesto e compara certo com ela mesma: `update: local=0.3.0 remoto=0.3.0`, sem falso positivo.
+- Publicada a 0.4.0, a mesma instalação 0.3.0 detectou sozinha: `update: local=0.3.0 remoto=0.4.0`.
+- SHA-256 do manifesto confere com o instalador realmente publicado (baixado e conferido).
+
+**Pendente do proprietário**: o clique final — abrir o app, ver o selo, ler o painel e mandar atualizar, confirmando que o app fecha, instala e reabre na 0.4.0.
