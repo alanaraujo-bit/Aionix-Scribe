@@ -405,3 +405,11 @@ Notificações do Windows aparecem com o app fechado e ficam guardadas na Centra
 
 ### Fora de alcance, e por quê
 O assistente do instalador já está no limite do que o Inno Setup permite personalizar, e o aviso do SmartScreen é do sistema operacional — só desaparece com assinatura de código (pendência #5). Nenhum dos dois é "nossa interface mais a do Windows": são momentos em que o app ainda não está em execução.
+
+### D022 — correção: manifesto de atualização vindo de cache (0.7.0)
+
+Logo após publicar a 0.6.0, o app instalado continuava lendo `remoto=0.5.0` enquanto o `curl` no mesmo instante já recebia `0.6.0` do mesmo endereço. Causa: o redirecionamento de `/releases/latest/download/` passa por CDN, e a resposta ficava em cache — o app enxergava o manifesto anterior e concluía "já estou atualizado".
+
+Consequência se tivesse passado: parte dos usuários simplesmente não receberia uma versão recém-publicada, sem erro nenhum aparecendo em lugar algum — o pior tipo de defeito, o que se parece com funcionamento normal.
+
+Corrigido com cache-busting na consulta (parâmetro de tempo na URL + `Cache-Control: no-cache, no-store` e `Pragma: no-cache`). Ressalva honesta: o cache podia ter expirado sozinho no intervalo do teste, então a verificação pós-correção não é prova definitiva de causa — mas a correção é obviamente certa e sem risco.

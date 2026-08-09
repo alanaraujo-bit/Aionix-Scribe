@@ -63,7 +63,24 @@ public static class UpdateService
     {
         try
         {
-            var json = await Http.GetStringAsync(ManifestUrl);
+            // Cache-busting obrigatório. O redirecionamento de /releases/latest/download/ passa por
+            // CDN, e um manifesto em cache faz o app continuar vendo a versão ANTERIOR mesmo depois
+            // de a nova estar publicada — observado ao vivo: o manifesto já respondia 0.6.0 no curl
+            // enquanto o app ainda lia 0.5.0. Sem isto, parte dos usuários simplesmente nunca
+            // receberia uma atualização recém-publicada.
+            var request = new HttpRequestMessage(HttpMethod.Get,
+                $"{ManifestUrl}?t={DateTime.UtcNow.Ticks}");
+            request.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue
+            {
+                NoCache = true,
+                NoStore = true,
+            };
+            request.Headers.Pragma.ParseAdd("no-cache");
+
+            using var response = await Http.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync();
+
             var manifest = JsonSerializer.Deserialize<UpdateManifest>(json);
             if (manifest == null || string.IsNullOrWhiteSpace(manifest.Version))
             {

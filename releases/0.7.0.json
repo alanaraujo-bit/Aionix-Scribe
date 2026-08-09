@@ -1,0 +1,11 @@
+{
+  "version": "0.7.0",
+  "headline": "A verificação de atualização deixou de olhar para uma resposta velha",
+  "summary": "Uma versão nova podia demorar horas para aparecer para você — o app recebia uma resposta guardada em cache e continuava achando que estava em dia. Agora ele sempre pergunta de verdade.",
+  "highlights": [
+    {
+      "title": "Atualizações aparecem assim que saem",
+      "body": "A consulta que descobre se existe versão nova passava por um cache intermediário e podia devolver a informação anterior. Foi visto na prática: o servidor já anunciava a versão nova enquanto o app ainda enxergava a antiga."
+    }
+  ]
+}
