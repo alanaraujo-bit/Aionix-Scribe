@@ -1,9 +1,19 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import { sql } from "drizzle-orm";
 import { transcribeAudio, GeminiError } from "./gemini.js";
 import { db } from "./db/index.js";
 
 const app = Fastify({ logger: true, bodyLimit: 30 * 1024 * 1024 });
+
+// CORS só para o site (P6), que chama /api/waitlist do navegador. O cliente desktop não passa por
+// CORS (não é browser), então liberar geral aqui não traria nada e só aumentaria a superfície.
+// Origens da Vercel entram por regex porque cada deploy de preview ganha um subdomínio novo —
+// fixar uma lista quebraria todo preview antes de ir para produção.
+await app.register(cors, {
+  origin: [/^https:\/\/[a-z0-9-]+\.vercel\.app$/, "http://localhost:3000"],
+  methods: ["POST", "GET", "OPTIONS"],
+});
 
 // Áudio chega como corpo binário bruto (o cliente desktop envia Content-Type: audio/wav | audio/webm | audio/mp3).
 for (const mime of ["audio/wav", "audio/webm", "audio/mpeg", "audio/mp4", "audio/x-m4a"]) {
@@ -30,6 +40,38 @@ app.get("/health/db", async (_req, reply) => {
     }
     const message = cause ?? (err instanceof Error ? err.message : "Erro desconhecido");
     return reply.code(503).send({ status: "error", database: "disconnected", error: message });
+  }
+});
+
+// Lista de espera das assinaturas, chamada pelo site (P6). Público de propósito: é um formulário
+// aberto de marketing, sem dados sensíveis. As proteções são de abuso, não de autenticação.
+app.post("/api/waitlist", async (req, reply) => {
+  const body = req.body as { email?: unknown; tier?: unknown; source?: unknown } | undefined;
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+
+  // Validação simples e deliberadamente permissiva: a única garantia real de que um e-mail existe é
+  // enviar mensagem para ele. Rejeitar formatos exóticos aqui perderia gente de verdade.
+  if (email.length < 5 || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return reply.code(400).send({ error: "Informe um e-mail válido." });
+  }
+
+  const tier = body?.tier;
+  const interestedTier =
+    tier === "essencial" || tier === "premium" || tier === "ultra" ? tier : null;
+  const source = typeof body?.source === "string" ? body.source.slice(0, 60) : null;
+
+  try {
+    // ON CONFLICT DO NOTHING: reenviar o mesmo e-mail é idempotente. A resposta é a mesma nos dois
+    // casos — dizer "você já está na lista" revelaria a terceiros quem se cadastrou.
+    await db.execute(sql`
+      INSERT INTO waitlist_signups (email, interested_tier, source)
+      VALUES (${email}, ${interestedTier}, ${source})
+      ON CONFLICT (email) DO NOTHING
+    `);
+    return reply.send({ ok: true });
+  } catch (err) {
+    req.log.error(err, "Falha ao gravar inscrição na lista de espera");
+    return reply.code(500).send({ error: "Não consegui registrar agora. Tente de novo em instantes." });
   }
 });
 

@@ -22,3 +22,7 @@ Thumbs.db
 *.log
 spike.log
 dist/
+web/.next/
+web/node_modules/
+web/.vercel/
+web/.env*.local

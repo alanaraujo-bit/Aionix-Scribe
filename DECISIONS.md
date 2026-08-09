@@ -413,3 +413,37 @@ Logo após publicar a 0.6.0, o app instalado continuava lendo `remoto=0.5.0` enq
 Consequência se tivesse passado: parte dos usuários simplesmente não receberia uma versão recém-publicada, sem erro nenhum aparecendo em lugar algum — o pior tipo de defeito, o que se parece com funcionamento normal.
 
 Corrigido com cache-busting na consulta (parâmetro de tempo na URL + `Cache-Control: no-cache, no-store` e `Pragma: no-cache`). Ressalva honesta: o cache podia ter expirado sozinho no intervalo do teste, então a verificação pós-correção não é prova definitiva de causa — mas a correção é obviamente certa e sem risco.
+
+---
+
+## D024 — Site do produto (P6): primeira versão pública
+
+*Pedido do proprietário: site premium, persuasivo, com elementos 3D e integrado/público.*
+
+### Decisão 1 — O CTA principal é "Baixar grátis", não "Assinar"
+Os preços existem de verdade no Stripe (`tiers.ts`), mas **o checkout não**: P3 Passo 5 não foi construído, não há autenticação nem entitlements. Vender uma assinatura que o app não sabe conceder seria pior do que não vender. Payment Links do Stripe foram **descartados como atalho** exatamente por isso — receberiam dinheiro sem que o produto pudesse liberar nada.
+
+Decisão do proprietário entre as opções apresentadas: **download grátis + lista de espera com endpoint real**. Nada de formulário decorativo.
+
+### Decisão 2 — Lista de espera é funcionalidade de verdade
+Tabela `waitlist_signups` (e-mail como chave primária, `ON CONFLICT DO NOTHING` = reenvio idempotente) e `POST /api/waitlist` no backend do Railway. A resposta é idêntica para e-mail novo e repetido: dizer "você já está na lista" revelaria a terceiros quem se cadastrou. Validação de formato deliberadamente permissiva — a única prova real de que um e-mail existe é enviar mensagem para ele.
+
+CORS liberado só para o site: origens `*.vercel.app` por **regex**, porque cada deploy de preview ganha um subdomínio novo e uma lista fixa quebraria todo preview antes de ir para produção. O cliente desktop não passa por CORS (não é navegador), então liberar geral não traria nada e só aumentaria a superfície.
+
+### Decisão 3 — 3D sem sacrificar desempenho
+"Com elementos 3D" e "performático" brigam entre si; a tensão foi resolvida explicitamente:
+- `next/dynamic` com `ssr:false` — o three.js não entra no HTML inicial nem bloqueia a primeira pintura;
+- alternativa estática (gradiente + anéis) mostrada enquanto o 3D carrega **e permanentemente** para quem tem `prefers-reduced-motion`;
+- `dpr` limitado a 1.5 (renderizar em 3x num objeto orgânico e desfocado é custo sem diferença visível);
+- `IntersectionObserver` pausa o loop de renderização quando o orbe sai da viewport — animar fora da tela é bateria e CPU jogados fora enquanto a pessoa lê o resto da página.
+
+### Decisão 4 — Nada de prova social inventada
+Sem depoimentos, sem contagem de usuários, sem logotipos de empresas. Não existe esse dado no projeto, e fabricá-lo seria inventar registro. A persuasão vem de afirmações **verificáveis**: escreve no idioma falado sem traduzir, limpa hesitações, funciona em qualquer aplicativo, histórico só local, silêncio nunca sai da máquina.
+
+### Infraestrutura
+Projeto `aionix-scribe` no time `aionixdev` da Vercel (D007). Produção pública em `https://aionix-scribe.vercel.app` — domínio próprio adiado por decisão do proprietário, e trocar depois não gera retrabalho. O primeiro deploy nasceu com o nome `web` (a Vercel deriva do diretório) e foi relinkado: o nome do projeto define o domínio.
+
+### Validado
+Build de produção limpo; site público respondendo 200 com o título correto; link de download apontando para o ativo permanente do release; os três preços reais renderizados na página; e o endpoint da lista de espera aceitando POST com a origem de produção (CORS, gravação e idempotência conferidos).
+
+**Pendente do proprietário**: julgar o visual — é o critério que só existe quando alguém vê na tela.

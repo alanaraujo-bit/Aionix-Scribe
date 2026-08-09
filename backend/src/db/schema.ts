@@ -95,3 +95,15 @@ export const webhookEvents = pgTable("webhook_events", {
   receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
   processedAt: timestamp("processed_at", { withTimezone: true }),
 });
+
+/// Lista de espera das assinaturas, alimentada pelo site (P6) enquanto o checkout não existe.
+/// Deliberadamente separada de `users`: quem entra aqui NÃO tem conta, não autenticou nada e pode
+/// nunca virar usuário — misturar as duas coisas poluiria a tabela de identidade com endereços não
+/// verificados. `email` é chave primária: reenviar o mesmo e-mail é idempotente, não duplica.
+export const waitlistSignups = pgTable("waitlist_signups", {
+  email: text("email").primaryKey(),
+  // Plano de interesse quando a pessoa clica num card específico; nulo quando vem do rodapé.
+  interestedTier: text("interested_tier", { enum: ["essencial", "premium", "ultra"] }),
+  source: text("source"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
