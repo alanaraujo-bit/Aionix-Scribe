@@ -1,0 +1,19 @@
+{
+  "version": "0.6.0",
+  "headline": "Nada mais parece do Windows no meio do app",
+  "summary": "O menu da bandeja, os avisos e a caixa de confirmação eram desenhados pelo Windows e destoavam do resto — apareciam brancos e quadrados no meio de uma interface escura e arredondada. Agora todos são do Aionix Scribe.",
+  "highlights": [
+    {
+      "title": "Menu da bandeja com a cara do app",
+      "body": "O menu que abre ao clicar no ícone ao lado do relógio passou a usar as cores, a fonte e o espaçamento do aplicativo — e acompanha a troca entre tema claro e escuro junto com o resto."
+    },
+    {
+      "title": "Avisos no lugar das notificações do Windows",
+      "body": "Mensagens como \"gravação preservada\" ou \"atualização disponível\" agora aparecem num cartão discreto no canto da tela, no visual do app. E, importante: eles não roubam o foco, então nunca mudam o campo onde seu próximo ditado vai cair."
+    },
+    {
+      "title": "Confirmações que combinam com o resto",
+      "body": "A pergunta antes de apagar o histórico deixou de ser a caixa cinza do sistema. E ela começa com o botão Cancelar selecionado — numa ação que apaga dados, um Enter distraído não deveria ser o que destrói seu histórico."
+    }
+  ]
+}

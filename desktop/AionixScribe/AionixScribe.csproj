@@ -17,7 +17,7 @@
          binário — um número, um lugar. Sem isto o assembly nasce como 1.0.0.0, que é MAIOR que a
          v0.1.0 publicada: qualquer comparação de versão para atualização automática daria
          "já está atualizado" para sempre. -->
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <!-- Sem isto o .NET carimba a InformationalVersion como "0.2.0+<hash do commit>", e o
          instalador (que lê ProductVersion do binário para exibir a versão) mostraria o hash junto. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
