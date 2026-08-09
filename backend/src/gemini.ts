@@ -1,4 +1,8 @@
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
+// Versão fixa, não o alias `gemini-flash-latest`: com alias, o modelo por trás do produto pode
+// mudar sem nenhum deploy nosso, e a qualidade inteira do Aionix Scribe é este par prompt+modelo.
+// Valor confirmado em produção (campo modelVersion da resposta) antes de fixar — não chutado.
+// Trocar de versão passa a ser uma decisão explícita, testada contra as gravações de validação.
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 const TRANSCRIPTION_PROMPT = `Você é o motor de transcrição do Aionix Scribe, um ditado por voz inteligente.
