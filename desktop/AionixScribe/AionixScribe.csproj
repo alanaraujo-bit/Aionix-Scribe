@@ -11,6 +11,20 @@
     <AssemblyName>AionixScribe</AssemblyName>
     <RootNamespace>AionixScribe</RootNamespace>
     <ApplicationIcon>Assets\AionixScribe.ico</ApplicationIcon>
+
+    <!-- FONTE ÚNICA da versão do produto. O instalador lê a versão do .exe compilado
+         (GetFileVersion no .iss) e o script de release gera o update.json a partir do mesmo
+         binário — um número, um lugar. Sem isto o assembly nasce como 1.0.0.0, que é MAIOR que a
+         v0.1.0 publicada: qualquer comparação de versão para atualização automática daria
+         "já está atualizado" para sempre. -->
+    <Version>0.2.0</Version>
+    <!-- Sem isto o .NET carimba a InformationalVersion como "0.2.0+<hash do commit>", e o
+         instalador (que lê ProductVersion do binário para exibir a versão) mostraria o hash junto. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Company>Aionix</Company>
+    <Product>Aionix Scribe</Product>
+    <Description>Ditado por voz inteligente para Windows</Description>
+    <Copyright>© Aionix</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

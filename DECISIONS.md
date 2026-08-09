@@ -266,3 +266,62 @@ Validado offline com WAVs gerados pelo mesmo caminho `WaveFileWriter`/`WaveForma
 - **Release v0.1.0 publicada** no GitHub (`AionixScribe-v0.1.0-win-x64.exe`, self-contained, não exige .NET instalado). Link estável: `/releases/latest/download/AionixScribe-v0.1.0-win-x64.exe`.
 
 **Continua pendente**: as quatro gravações de validação de idioma (pt-BR **curta** — a célula de risco do D011 —, pt-BR com termos em inglês, inglês puro, e silêncio) não foram feitas; o teste fim-a-fim usou um áudio longo, que não é o caso arriscado. E o binário publicado, embora compilado depois da rotação (ordem de build conferida), nunca falou com o backend rotacionado — só um download real do release e um ditado confirmam isso.
+
+---
+
+## D020 — Shell de janela única substitui o modelo de três janelas
+
+*Pedido do proprietário com referência visual anexada (Wispr Flow): "uma única tela, e dentro dela várias telas".*
+
+### Decisão
+`MainPanelWindow` deixa de ser uma tela e passa a ser um **shell**: barra de título própria, navegação lateral e uma área de conteúdo que troca de seção. `HistoryWindow` e `SettingsWindow` foram **convertidas em UserControls** (`HistorySection`, `SettingsSection`) e os arquivos de janela, removidos — não coexistem duas implementações da mesma tela para não divergirem. `DictationSection` nasce do conteúdo antigo do painel. Janela agora é redimensionável (900x620, mínimo 760x520) em vez de `SizeToContent`.
+
+Os itens da bandeja ("Histórico...", "Configurações...") continuam existindo: agora chamam `OpenMainPanel(PanelSection)` e abrem a janela já na seção certa, em vez de abrir janelas separadas.
+
+Navegação usa `RadioButton` com `GroupName` e o `NavItemStyle` novo — "exatamente um ativo" e navegação por teclado saem de graça do WPF, em vez de estado de seleção reimplementado à mão.
+
+### Conta e Plano ficaram de fora, de propósito
+A referência tem perfil, "0 words remaining" e "Upgrade to Pro" na lateral. Nada disso existe aqui: autenticação, entitlements e billing são P3, não construídos. A regra do projeto proíbe UI sem funcionalidade real por trás (mesma razão pela qual Configurações → Conta/Idioma continua não existindo, ver P2 no ROADMAP). A lateral já está estruturada para recebê-los como irmãos dos itens atuais quando o P3 entrar — o comentário no XAML registra isso para quem mexer depois.
+
+### Três armadilhas de migração tratadas
+1. **Captura de atalho quebraria em silêncio.** `SettingsWindow` assinava `PreviewKeyDown` em si mesma e chamava `Focus()`. Num `UserControl`, `PreviewKeyDown` só dispara com o foco dentro dele e `Focus()` é no-op sem `Focusable` — o botão ficaria preso em "Pressione o novo atalho..." para sempre, sem erro visível. Agora a seção assina o evento **da janela** no `Loaded` e solta no `Unloaded` (que também destrava uma captura interrompida ao trocar de seção).
+2. **Seções são reaproveitadas, não recriadas.** `HistoryWindow` só recarregava no construtor; como seção, ficaria congelada enquanto ditados novos chegam pelo atalho global com a janela fechada. Cada seção expõe `Refresh()`, chamado ao navegar.
+3. **`Close()` e `MessageBox.Show(this)` não valem em `UserControl`.** Fechar é responsabilidade do shell; o diálogo de confirmação passou a usar `Window.GetWindow(this)` como dono, senão pode abrir atrás da janela e travar a interação sem explicação.
+
+### Pendente de validação ao vivo
+Aparência das três seções e, principalmente, **trocar o atalho de verdade** — é a regressão que nenhum print revela e nenhum build detecta.
+
+---
+
+## D021 — Instalador Windows real (Inno Setup), substituindo o executável solto
+
+*Pedido do proprietário: "não deve ficar um executável, deve ser um instalador... bem personalizado, temático ao nosso projeto".*
+
+### Por que existia um .exe solto
+Não foi decisão de arquitetura, foi sequência: quando o pedido era "sobe e deixa baixável pra eu testar", o caminho mais curto até algo instalável-e-testável era um `publish` self-contained single-file. O instalador sempre foi P5. Este D021 traz o P5 (parcialmente) para frente porque a atualização automática pedida depende dele.
+
+### Decisão 1 — Inno Setup, não Velopack/MSIX
+Velopack resolveria instalador **e** atualização de uma vez, mas seu instalador é um splash mínimo sem personalização real — perde no requisito explícito de "temático ao nosso projeto". MSIX exige assinatura de código (pendência #5, inexistente). Inno dá controle total do assistente (arte, textos, páginas) e sua reinstalação silenciosa (`/SILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS`) já é um mecanismo de atualização adequado — o que elimina a gambiarra de um `.exe` sobrescrevendo a si mesmo em execução.
+
+### Decisão 2 — Instalação POR USUÁRIO, não em Arquivos de Programas
+`PrivilegesRequired=lowest`, destino `{localappdata}\Programs\AionixScribe`. Esta é a decisão que **viabiliza a atualização automática**: sob Arquivos de Programas, toda atualização dispararia UAC — o usuário veria pedido de administrador a cada versão, ou a atualização falharia silenciosamente. Também mantém intacta a inicialização automática via `HKCU\...\Run`, que guarda o caminho do executável.
+
+### Decisão 3 — Pacote em pasta, não single-file
+O instalador empacota o publish self-contained **sem** `PublishSingleFile`. Resultado: instalador de **49 MB** contra os 156 MB do executável solto (LZMA2 sólido comprime muito melhor a pasta), e sem o custo de extração para o temp a cada inicialização que o single-file impõe.
+
+### Detalhes que quebrariam depois se ficassem para depois
+- **`AppId` GUID fixo** (`CDE0D1BA-…`): é o que faz uma instalação nova *substituir* a anterior. Trocá-lo depois criaria um produto novo aos olhos do Windows e deixaria a versão antiga órfã na máquina de quem já instalou.
+- **`CloseApplications`/`RestartApplications`**: sem isso, atualizar por cima do app aberto falharia com arquivo bloqueado — exatamente o erro que aparece ao recompilar com o app rodando.
+- **Dados do usuário sobrevivem à desinstalação**: `%LOCALAPPDATA%\AionixScribe\` (histórico, atalho, tema, pendências) só é apagado se a pessoa disser sim numa pergunta explícita. Coerente com o texto de Privacidade dentro do app: aquela pasta é do usuário.
+- **Ativo de download com nome fixo**: o release publica o instalador duas vezes — `AionixScribe-Setup-<versão>.exe` (histórico) e `AionixScribe-Setup.exe` (nome estável). O segundo torna `/releases/latest/download/AionixScribe-Setup.exe` um link permanente; com só o nome versionado, o botão do site quebraria a cada release.
+
+### Versão: uma origem só
+`<Version>` no `.csproj` → carimbada no binário pelo compilador → lida pelo `.iss` (`GetStringFileInfo`) e pelo `scripts/release.ps1`. Antes disso o assembly nascia como `1.0.0.0`, **maior** que a `v0.1.0` publicada — qualquer comparação de versão para atualização automática responderia "já está atualizado" para sempre. `IncludeSourceRevisionInInformationalVersion=false` impede que o hash do commit apareça na versão exibida.
+
+### Validado
+Compilação, instalação silenciosa (código de saída 0), executável em `{localappdata}\Programs\AionixScribe` com `ProductVersion 0.2.0`, entrada de inicialização automática apontando para o caminho instalado, atalho no menu Iniciar, desinstalador registrado, e o app **abrindo a partir do local instalado**.
+
+**Pendente do proprietário**: rodar o instalador de forma interativa para julgar a identidade visual do assistente (a captura automatizada não pegou a janela), e o teste de desinstalação com a pergunta sobre apagar dados.
+
+### Ainda não feito (próximo passo)
+O mecanismo de atualização automática em si — verificação de versão nova, painel do "o que mudou", adiar/lembrar depois e o selo permanente de atualização. Foi para o passo seguinte porque não dá para testar atualização sem existir primeiro uma instalação de onde atualizar.

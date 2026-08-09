@@ -19,8 +19,6 @@ public partial class App : System.Windows.Application
     private Forms.NotifyIcon? _tray;
     private DispatcherTimer? _hideTimer;
     private Forms.ToolStripMenuItem? _pendingMenuItem;
-    private SettingsWindow? _settingsWindow;
-    private HistoryWindow? _historyWindow;
     private MainPanelWindow? _mainPanel;
     private bool? _appliedLightTheme;
 
@@ -40,7 +38,7 @@ public partial class App : System.Windows.Application
     public event Action<string>? DictationSucceeded;
 
     // Candidatos tentados em ordem até um registrar sem conflito, quando não há preferência
-    // salva pelo usuário (ver HotkeySettings / SettingsWindow, DECISIONS.md D010).
+    // salva pelo usuário (ver HotkeySettings / SettingsSection, DECISIONS.md D010).
     private static readonly (uint Modifiers, uint Vk, string Label)[] HotkeyCandidates =
     {
         (Native.MOD_CONTROL | Native.MOD_ALT, 0x20, "Ctrl+Alt+Espaço"),
@@ -194,7 +192,7 @@ public partial class App : System.Windows.Application
         _tray!.ShowBalloonTip(3000, "Aionix Scribe", $"Atalho ativo: {CurrentHotkeyLabel}", Forms.ToolTipIcon.Info);
     }
 
-    /// Chamado pela SettingsWindow quando o usuário captura um novo atalho. Em caso de conflito,
+    /// Chamado pela seção de Configurações quando o usuário captura um novo atalho. Em caso de conflito,
     /// mantém o atalho anterior funcionando (não deixa o app sem nenhum atalho registrado).
     public bool TryChangeHotkey(uint modifiers, uint vk, string label, out string? error)
     {
@@ -223,7 +221,7 @@ public partial class App : System.Windows.Application
         return true;
     }
 
-    /// Chamado pela SettingsWindow ao trocar entre Toggle e PushToTalk, mantendo o combo atual.
+    /// Chamado pela seção de Configurações ao trocar entre Toggle e PushToTalk, mantendo o combo atual.
     public bool TryChangeMode(HotkeyMode mode, out string? error)
     {
         if (mode == _hotkeyMode)
@@ -312,16 +310,18 @@ public partial class App : System.Windows.Application
         return Drawing.SystemIcons.Application;
     }
 
-    public void OpenMainPanel()
+    public void OpenMainPanel(PanelSection section = PanelSection.Dictation)
     {
         if (_mainPanel == null || !_mainPanel.IsLoaded)
         {
             _mainPanel = new MainPanelWindow();
             _mainPanel.Closed += (_, _) => _mainPanel = null;
+            _mainPanel.Navigate(section);
         }
         else
         {
-            _mainPanel.Refresh();
+            _mainPanel.Navigate(section); // já navega e dá Refresh na seção alvo
+            if (_mainPanel.WindowState == WindowState.Minimized) _mainPanel.WindowState = WindowState.Normal;
         }
         _mainPanel.Show();
         _mainPanel.Activate();
@@ -515,27 +515,11 @@ public partial class App : System.Windows.Application
         _hideTimer.Start();
     }
 
-    public void OpenHistory()
-    {
-        if (_historyWindow == null || !_historyWindow.IsLoaded)
-        {
-            _historyWindow = new HistoryWindow();
-            _historyWindow.Closed += (_, _) => _historyWindow = null;
-        }
-        _historyWindow.Show();
-        _historyWindow.Activate();
-    }
+    // Histórico e Configurações deixaram de ser janelas próprias: são seções do shell (D020).
+    // Os itens da bandeja continuam existindo e apenas abrem a janela já na seção certa.
+    public void OpenHistory() => OpenMainPanel(PanelSection.History);
 
-    public void OpenSettings()
-    {
-        if (_settingsWindow == null || !_settingsWindow.IsLoaded)
-        {
-            _settingsWindow = new SettingsWindow();
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
-        }
-        _settingsWindow.Show();
-        _settingsWindow.Activate();
-    }
+    public void OpenSettings() => OpenMainPanel(PanelSection.Settings);
 
     protected override void OnExit(ExitEventArgs e)
     {

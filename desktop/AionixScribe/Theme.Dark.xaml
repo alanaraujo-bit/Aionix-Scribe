@@ -17,6 +17,13 @@
     <SolidColorBrush x:Key="AccentTextBrush" Color="#241005"/>
     <SolidColorBrush x:Key="BorderBrush" Color="#12FFFFFF"/>
     <SolidColorBrush x:Key="BorderStrongBrush" Color="#20FFFFFF"/>
+    <!-- Contorno de controle interativo (anel de rádio, caixa de seleção). Separado de
+         BorderStrongBrush de propósito: aquele delimita superfícies, e no alfa baixo que serve pra
+         card um anel de 16px praticamente desaparece — o usuário perde a affordance de "isto é
+         clicável e tem estado". Aqui o alfa é deliberadamente mais alto. -->
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#4DFFFFFF"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#2EFFFFFF"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#4DFFFFFF"/>
     <SolidColorBrush x:Key="SuccessBrush" Color="#4ADE80"/>
     <SolidColorBrush x:Key="ErrorBrush" Color="#F87171"/>
     <SolidColorBrush x:Key="WarningBrush" Color="#FBBF24"/>

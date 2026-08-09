@@ -3,12 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Aionix Scribe"
-        Width="440" SizeToContent="Height"
+        Width="900" Height="620" MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBackgroundBrush}"
         Foreground="{DynamicResource PrimaryTextBrush}"
         FontFamily="./Fonts/#Sora"
-        ResizeMode="CanMinimize"
+        ResizeMode="CanResize"
         Loaded="OnWindowLoaded">
 
     <shell:WindowChrome.WindowChrome>
@@ -18,9 +18,10 @@
     <Grid x:Name="RootContent">
         <Grid.RowDefinitions>
             <RowDefinition Height="40"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- BARRA DE TÍTULO -->
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
@@ -29,68 +30,68 @@
             </Grid.ColumnDefinitions>
 
             <Image Grid.Column="0" Source="pack://application:,,,/Assets/AionixScribe.ico" Width="18" Height="18"
-                   Margin="14,0,8,0" VerticalAlignment="Center"/>
+                   Margin="16,0,8,0" VerticalAlignment="Center"/>
             <TextBlock Grid.Column="1" Text="Aionix Scribe" VerticalAlignment="Center"
                        Style="{StaticResource TitlebarLabelStyle}"/>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,8,0" VerticalAlignment="Center">
-                <Button x:Name="MinimizeButton" Style="{StaticResource TitlebarButtonStyle}"
-                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnMinimizeClicked"
-                        ToolTip="Minimizar">
+                <Button Style="{StaticResource TitlebarButtonStyle}"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnMinimizeClicked" ToolTip="Minimizar">
                     <TextBlock Text="&#x2013;" FontSize="15"/>
                 </Button>
-                <Button x:Name="CloseButton" Style="{StaticResource TitlebarButtonStyle}" Margin="4,0,0,0"
-                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnCloseClicked"
-                        ToolTip="Fechar">
+                <Button Style="{StaticResource TitlebarButtonStyle}" Margin="4,0,0,0"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnMaximizeClicked" ToolTip="Maximizar">
+                    <TextBlock Text="&#x2610;" FontSize="12"/>
+                </Button>
+                <Button Style="{StaticResource TitlebarButtonStyle}" Margin="4,0,0,0"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="OnCloseClicked" ToolTip="Fechar">
                     <TextBlock Text="&#x2715;" FontSize="11"/>
                 </Button>
             </StackPanel>
         </Grid>
 
-        <StackPanel Grid.Row="1" Margin="24,4,24,24">
-            <TextBlock Text="Painel" Style="{StaticResource TitleTextStyle}" Margin="0,0,0,4"/>
-            <TextBlock Text="Falar é uma forma superior de digitar." Style="{StaticResource TaglineTextStyle}" Margin="0,0,0,22"/>
+        <Grid Grid.Row="1" Margin="12,0,12,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="214"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <Grid Margin="0,0,0,16">
+            <!-- NAVEGAÇÃO LATERAL -->
+            <DockPanel Grid.Column="0" Margin="4,4,12,0">
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="NAVEGAÇÃO" Style="{StaticResource EyebrowTextStyle}" Margin="12,4,0,10"/>
+
+                    <RadioButton x:Name="NavDictation" GroupName="Nav" Content="Ditado" Tag="&#xE720;"
+                                 Style="{StaticResource NavItemStyle}" Checked="OnNavChanged"/>
+                    <RadioButton x:Name="NavHistory" GroupName="Nav" Content="Histórico" Tag="&#xE81C;"
+                                 Style="{StaticResource NavItemStyle}" Checked="OnNavChanged"/>
+                    <RadioButton x:Name="NavSettings" GroupName="Nav" Content="Configurações" Tag="&#xE713;"
+                                 Style="{StaticResource NavItemStyle}" Checked="OnNavChanged"/>
+                </StackPanel>
+
+                <!--
+                    Rodapé da barra lateral. Conta e Plano NÃO aparecem aqui de propósito: nada disso
+                    existe ainda (P3 — autenticação, entitlements e billing), e a regra do projeto
+                    proíbe UI sem funcionalidade real por trás. A estrutura já comporta os dois como
+                    irmãos dos itens acima no dia em que o P3 entrar.
+                -->
+                <StackPanel DockPanel.Dock="Bottom" Margin="12,0,0,4">
+                    <TextBlock Style="{StaticResource FootnoteTextStyle}" TextWrapping="Wrap" LineHeight="15">
+                        <Run Text="Atalho ativo"/><LineBreak/>
+                        <Run x:Name="SidebarHotkeyRun" Text="—" FontFamily="./Fonts/#Sora SemiBold"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <Grid/>
+            </DockPanel>
+
+            <!-- ÁREA DE CONTEÚDO -->
+            <Grid Grid.Column="1">
                 <Border Style="{StaticResource CardShadowStyle}"/>
-                <Border Style="{StaticResource CardContentStyle}">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <Ellipse x:Name="MicStatusDot" Width="9" Height="9" Fill="{DynamicResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <TextBlock x:Name="MicStatusText" Text="Microfone pronto" VerticalAlignment="Center" Style="{StaticResource BodyTextStyle}"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Atalho " Style="{StaticResource BodyMutedTextStyle}"/>
-                            <TextBlock x:Name="HotkeyText" Text="—" Style="{StaticResource BodyEmphasisTextStyle}"/>
-                        </StackPanel>
-                    </StackPanel>
+                <Border Style="{StaticResource CardContentStyle}" Padding="0" ClipToBounds="True">
+                    <ContentControl x:Name="SectionHost"/>
                 </Border>
             </Grid>
-
-            <TextBlock Text="ATIVIDADE RECENTE" Style="{StaticResource EyebrowTextStyle}" Margin="4,0,0,10"/>
-            <ItemsControl x:Name="RecentList">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Margin="0,0,0,8">
-                            <Border Style="{StaticResource RecentItemShadowStyle}"/>
-                            <Border Style="{StaticResource RecentItemContentStyle}">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding TimestampDisplay}" Style="{StaticResource FootnoteTextStyle}"/>
-                                    <TextBlock Text="{Binding Text}" Style="{StaticResource BodyTextStyle}"
-                                               TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <TextBlock x:Name="EmptyRecentText" Text="Nenhum ditado ainda. Pressione o atalho e fale para começar."
-                       Style="{StaticResource BodyMutedTextStyle}" TextWrapping="Wrap" Margin="4,0,0,8" Visibility="Collapsed"/>
-
-            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Button Content="Ver histórico completo" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,10,0" Click="OnHistoryClicked"/>
-                <Button Content="Configurações" Style="{StaticResource GhostButtonStyle}" Click="OnSettingsClicked"/>
-            </StackPanel>
-        </StackPanel>
+        </Grid>
     </Grid>
 </Window>

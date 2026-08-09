@@ -9,28 +9,57 @@ namespace AionixScribe;
 
 public sealed record MicrophoneOption(int Index, string Name);
 
-public partial class SettingsWindow : Window
+public partial class SettingsSection : System.Windows.Controls.UserControl
 {
     private bool _capturing;
     private bool _initializingMode;
     private bool _initializingMicrophone;
     private bool _initializingStartup;
     private bool _initializingTheme;
+    private Window? _host;
 
-    public SettingsWindow()
+    public SettingsSection()
     {
         InitializeComponent();
+        Refresh();
+    }
+
+    /// A captura do atalho escuta a JANELA, não este UserControl. Num UserControl, PreviewKeyDown só
+    /// dispara quando o foco está dentro dele — o usuário clicaria em "Alterar atalho", o botão
+    /// ficaria em "Pressione o novo atalho..." para sempre e nenhuma tecla seria capturada, sem
+    /// erro nenhum na tela. Assinar no Loaded (e soltar no Unloaded) evita isso e evita vazar o
+    /// handler quando a seção sai de vista.
+    private void OnSectionLoaded(object sender, RoutedEventArgs e)
+    {
+        _host = Window.GetWindow(this);
+        if (_host != null) _host.PreviewKeyDown += OnPreviewKeyDownFromHost;
+        Refresh();
+    }
+
+    private void OnSectionUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_host != null) _host.PreviewKeyDown -= OnPreviewKeyDownFromHost;
+        _host = null;
+
+        // Sair da seção no meio de uma captura deixaria o estado preso — devolve o botão ao normal.
+        if (_capturing)
+        {
+            _capturing = false;
+            ChangeButton.Content = "Alterar atalho";
+        }
+    }
+
+    /// Relê tudo do disco. Chamado quando a seção volta a ficar visível: a instância é reaproveitada
+    /// pelo shell, e atalho/tema podem ter mudado por fora (ex.: tema do Windows em modo Sistema).
+    public void Refresh()
+    {
         RefreshCurrentHotkeyDisplay();
         RefreshModeSelection();
         RefreshMicrophoneList();
         RefreshStartupState();
         RefreshThemeSelection();
-        PreviewKeyDown += OnPreviewKeyDown;
     }
 
-    // Reaplicar "Sistema" toda vez que a janela abre cobre o caso de o usuário ter trocado o tema
-    // do Windows enquanto o app não estava com Configurações aberta — App já observa
-    // SystemEvents.UserPreferenceChanged em tempo real, então isso aqui é só reforço na abertura.
     private void RefreshThemeSelection()
     {
         _initializingTheme = true;
@@ -163,10 +192,10 @@ public partial class SettingsWindow : Window
         _capturing = true;
         ChangeButton.Content = "Pressione o novo atalho...";
         StatusText.Visibility = Visibility.Collapsed;
-        Focus();
+        _host?.Focus();
     }
 
-    private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private void OnPreviewKeyDownFromHost(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (!_capturing) return;
 
@@ -237,6 +266,4 @@ public partial class SettingsWindow : Window
         RefreshModeSelection();
         StatusText.Visibility = Visibility.Collapsed;
     }
-
-    private void OnCloseClicked(object sender, RoutedEventArgs e) => Close();
 }

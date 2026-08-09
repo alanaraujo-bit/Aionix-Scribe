@@ -142,6 +142,144 @@
         </Setter>
     </Style>
 
+    <!-- Cabeçalho de seção de Configurações. Menor que TitleTextStyle (que é o título da janela) e
+         em Sora, não Fraunces: Fraunces é a voz da marca no título, repeti-la seis vezes numa lista
+         de seções vira ruído. -->
+    <Style x:Key="SectionTitleTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="./Fonts/#Sora SemiBold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+    </Style>
+
+    <!--
+        RadioButton e CheckBox como LINHAS clicáveis inteiras, não o controle nativo do Windows com
+        a cor trocada. O nativo ignora Background/BorderBrush no seu chrome (template Aero2), que é
+        exatamente por que a tela de Configurações destoava do resto do app.
+
+        Ordem dos triggers importa: IsMouseOver vem antes de IsChecked de propósito, para o estado
+        selecionado vencer o hover — perder a indicação de seleção ao passar o mouse é pior do que
+        não ter feedback de hover na linha já selecionada.
+    -->
+    <Style x:Key="OptionRadioStyle" TargetType="RadioButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Row" Background="Transparent" CornerRadius="10" Padding="10,9">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid Grid.Column="0" Width="16" Height="16" Margin="0,1,12,0" VerticalAlignment="Top">
+                                <Ellipse x:Name="Ring" Stroke="{DynamicResource ControlBorderBrush}" StrokeThickness="1.5"/>
+                                <Ellipse x:Name="Dot" Width="7" Height="7" Fill="{DynamicResource AccentBrush}" Visibility="Collapsed"/>
+                            </Grid>
+                            <ContentPresenter Grid.Column="1" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource PrimaryTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="OptionCheckBoxStyle" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        <Setter Property="FontFamily" Value="./Fonts/#Sora"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Row" Background="Transparent" CornerRadius="10" Padding="10,9">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="Box" Grid.Column="0" Width="16" Height="16" CornerRadius="5"
+                                    Margin="0,1,12,0" VerticalAlignment="Top"
+                                    BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1.5"
+                                    Background="Transparent">
+                                <Path x:Name="Check" Data="M 0 3.5 L 2.8 6.3 L 8 1"
+                                      Stroke="{DynamicResource AccentTextBrush}" StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Grid.Column="1" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"
+                                              TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                              TextElement.FontSize="{TemplateBinding FontSize}"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource PrimaryTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Barra de rolagem fina: a nativa do WPF é larga, clara e com botões de seta nas pontas —
+         some qualquer sensação de app moderno na única janela do app que precisa rolar. -->
+    <Style x:Key="SlimScrollBarStyle" TargetType="ScrollBar">
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="Transparent">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Border x:Name="ThumbBg" Background="{DynamicResource ScrollThumbBrush}"
+                                                    CornerRadius="4" Margin="2,0"/>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ThumbBg" Property="Background" Value="{DynamicResource ScrollThumbHoverBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="GhostButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource ButtonBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource ButtonForegroundBrush}"/>
@@ -172,6 +310,168 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!--
+        Item da navegação lateral. É um RadioButton de propósito: "exatamente um ativo" já vem de
+        graça do GroupName, incluindo navegação por teclado — hand-rollar estado de seleção aqui
+        seria reimplementar pior o que o WPF já garante.
+    -->
+    <Style x:Key="NavItemStyle" TargetType="RadioButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Margin" Value="0,0,0,2"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Row" Background="Transparent" CornerRadius="10" Padding="12,9">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="Icon" Grid.Column="0" Text="{TemplateBinding Tag}"
+                                       FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,12,0"/>
+                            <ContentPresenter x:Name="Label" Grid.Column="1" VerticalAlignment="Center"
+                                              TextElement.Foreground="{DynamicResource MutedTextBrush}"
+                                              TextElement.FontFamily="./Fonts/#Sora"
+                                              TextElement.FontSize="13"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+                            <Setter TargetName="Label" Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+                            <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+                            <Setter TargetName="Label" Property="TextElement.Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+                            <Setter TargetName="Label" Property="TextElement.FontFamily" Value="./Fonts/#Sora SemiBold"/>
+                            <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        ComboBox com template próprio. Motivo: definir Background/Foreground no ComboBox nativo NÃO
+        pinta o chrome dele (o template Aero2 usa os próprios pincéis internos) — o resultado real
+        foi texto quase-branco sobre caixa cinza-clara, ilegível nos dois estados, aberto e fechado.
+
+        Mantido como ComboBox (em vez de virar botão + menu) porque o code-behind depende de
+        ItemsSource/SelectedItem/SelectionChanged/DisplayMemberPath; trocar o controle obrigaria a
+        reescrever a lógica de microfone sem nenhum ganho visual.
+
+        Sem DropShadowEffect no popup de propósito: Effect num Border que contém texto força uma
+        superfície de render intermediária e derruba o ClearType (mesma armadilha documentada no
+        comentário do CardShadowStyle).
+    -->
+    <Style x:Key="SettingsComboBoxItemStyle" TargetType="ComboBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        <Setter Property="FontFamily" Value="./Fonts/#Sora"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="8" Padding="10,8">
+                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"
+                                          TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                          TextElement.FontSize="{TemplateBinding FontSize}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SettingsComboBoxStyle" TargetType="ComboBox">
+        <Setter Property="ItemContainerStyle" Value="{StaticResource SettingsComboBoxItemStyle}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+        <Setter Property="FontFamily" Value="./Fonts/#Sora"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="MaxDropDownHeight" Value="260"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <!-- O ToggleButton desenha só o chrome e preenche a área toda; o texto do
+                             item selecionado vive num ContentPresenter irmão POR CIMA dele, como no
+                             template padrão do WPF — é isso que permite estilizar a caixa sem perder
+                             o binding de seleção. -->
+                        <ToggleButton x:Name="Toggle" Focusable="False" ClickMode="Press"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Chrome" Background="{DynamicResource SurfaceRaisedBrush}"
+                                            BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1"
+                                            CornerRadius="10">
+                                        <Path x:Name="Chevron" Data="M 0 0 L 4.5 4.5 L 9 0"
+                                              Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.6"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource PrimaryTextBrush}"/>
+                                            <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource PrimaryTextBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+
+                        <ContentPresenter IsHitTestVisible="False"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                          Margin="13,10,36,10" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"
+                                          TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                          TextElement.FontSize="{TemplateBinding FontSize}"/>
+
+                        <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True"
+                               Focusable="False" StaysOpen="False" PopupAnimation="Fade"
+                               IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                            <Border Background="{DynamicResource CardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
+                                    CornerRadius="10" Padding="4" Margin="0,4,0,0">
+                                <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                              VerticalScrollBarVisibility="Auto">
+                                    <ScrollViewer.Resources>
+                                        <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}"/>
+                                    </ScrollViewer.Resources>
+                                    <ItemsPresenter/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Botão compacto para ações secundárias em linha (trio do atalho). Mesma linguagem do
+         GhostButtonStyle, só com respiro menor. Precisa vir DEPOIS dele no dicionário: BasedOn com
+         StaticResource só enxerga o que já foi declarado acima. O texto do "Alterar atalho" troca
+         em runtime para "Pressione o novo atalho...", então a largura fica automática. -->
+    <Style x:Key="CompactGhostButtonStyle" TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
+        <Setter Property="Padding" Value="14,8"/>
+        <Setter Property="FontSize" Value="12"/>
     </Style>
 
 </ResourceDictionary>
