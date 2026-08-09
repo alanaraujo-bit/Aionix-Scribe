@@ -447,3 +447,29 @@ Projeto `aionix-scribe` no time `aionixdev` da Vercel (D007). Produção públic
 Build de produção limpo; site público respondendo 200 com o título correto; link de download apontando para o ativo permanente do release; os três preços reais renderizados na página; e o endpoint da lista de espera aceitando POST com a origem de produção (CORS, gravação e idempotência conferidos).
 
 **Pendente do proprietário**: julgar o visual — é o critério que só existe quando alguém vê na tela.
+
+---
+
+## D025 — O orbe substitui o indicador de ditado
+
+*Pedido do proprietário, a partir do orbe 3D do site: usar o mesmo elemento como indicador durante a fala. Depois de ver a primeira versão: "muito grande... mais sucinto e minimalista", e "tirar a frase 'ouvindo' para deixar só o orbe".*
+
+### Decisão 1 — WPF nativo, não o mesmo componente do site
+Reaproveitar o `VoiceOrb` do site exigiria WebView2 no overlay: dependência pesada, latência de inicialização num indicador que precisa aparecer instantâneo ao apertar o atalho, e uma superfície estranha reintroduzida logo depois do D023 ter removido todas. O orbe do app é `Ellipse` + `RadialGradientBrush` + `ScaleTransform`, que o WPF compõe na GPU. É a mesma *linguagem visual* (núcleo com volume, halo, anéis de amplitude, paleta da marca), não o mesmo código.
+
+### Decisão 2 — Ele reage à voz de verdade
+`AudioRecorder` passou a expor `CurrentLevel` (0..1) calculado do RMS de cada bloco capturado — reaproveitando a mesma medida que o portão de silêncio já usava. Três detalhes que separam "parece vivo" de "parece falso":
+- **Campo `volatile`, não evento**: o NAudio entrega blocos numa thread própria a cada ~100ms; um evento por bloco encheria a fila do Dispatcher sem melhorar nada. Quem desenha lê no ritmo do próprio quadro.
+- **Raiz quadrada na normalização**: percepção de volume não é linear; sem ela o orbe passaria quase todo o tempo perto do mínimo e só reagiria a grito.
+- **Ataque rápido, decaimento lento** (0.35 subindo, 0.08 descendo): acompanhar o ataque da voz e deixar a cauda cair suave é o que faz o movimento parecer orgânico.
+
+`CurrentLevel` é zerado no `Stop()`: sem isso o orbe entraria em "processando" congelado na amplitude da última sílaba.
+
+### Decisão 3 — O laço de render só existe enquanto o overlay está visível
+`CompositionTarget.Rendering` é assinado no `IsVisibleChanged` e solto ao esconder. Um callback esquecido ligado seria CPU queimando para sempre num app que passa o dia ocioso na bandeja — a linha de base medida (P1) é 0% de CPU parado, e essa medição não pode ser perdida por causa de uma animação.
+
+### Decisão 4 — Sem rótulo, com a lacuna tratada
+Removido o texto por decisão do proprietário. A consequência não é cosmética: **"Nenhuma fala detectada" só existia ali**. Sem o rótulo, o usuário falaria, nada seria inserido e nada explicaria o porquê — um orbe cinza sozinho não distingue "não ouvi nada" de "deu erro". Os dois caminhos (portão local e resposta vazia da Gemini) passaram a emitir um aviso do canto da tela (D023). Os estados restantes são legíveis pela cor: laranja ouvindo/processando, verde concluído, vermelho falha, cinza nada aconteceu.
+
+### Validado
+Build limpo e captura de tela do overlay real em execução, nas duas versões (a grande, que motivou o ajuste, e a compacta final). **Pendente do proprietário**: falar de verdade e julgar se o movimento acompanha bem a voz — a reação ao áudio ao vivo é o que nenhuma captura estática prova.

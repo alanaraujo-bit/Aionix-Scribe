@@ -8,15 +8,76 @@
         ShowActivated="False"
         Topmost="True"
         ResizeMode="NoResize"
-        SizeToContent="WidthAndHeight">
-    <Border CornerRadius="14"
-            Background="{DynamicResource OverlayBackgroundBrush}"
-            BorderBrush="{DynamicResource OverlayBorderBrush}"
-            BorderThickness="1"
-            Padding="16,10">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="{DynamicResource SuccessBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <TextBlock x:Name="StatusText" Text="Ouvindo..." Foreground="{DynamicResource PrimaryTextBrush}" FontSize="14" FontFamily="Segoe UI" VerticalAlignment="Center"/>
-        </StackPanel>
-    </Border>
+        SizeToContent="WidthAndHeight"
+        FontFamily="./Fonts/#Sora">
+
+    <!--
+        O orbe é o overlay. O halo desfocado fica num Ellipse IRMÃO, atrás — nunca como Effect no
+        container que tem o texto: efeito aplicado sobre texto força uma superfície de render
+        intermediária e derruba o ClearType, deixando o rótulo acinzentado e mole (mesma armadilha
+        documentada no CardShadowStyle).
+    -->
+    <!--
+        Só o orbe, sem rótulo (decisão do proprietário: "tirar a frase 'ouvindo' para deixar só o
+        orbe"). Consequência tratada: os estados passam a ser lidos APENAS pela cor — laranja
+        ouvindo/processando, verde concluído, vermelho falha, cinza nada aconteceu. O que precisa de
+        explicação em palavras (gravação preservada, sem fala detectada) já chega pelos avisos do
+        canto da tela (D023), que não dependem deste overlay.
+
+        Margem generosa em volta de um conteúdo pequeno é proposital: o halo é desfocado e precisa
+        de espaço para dissipar. Sem ela, o blur seria cortado na borda da janela.
+    -->
+    <Grid Margin="34" Width="72" Height="72">
+
+        <!-- Halo: só forma, sem filhos, para poder receber blur com segurança. -->
+        <Ellipse x:Name="Halo" Width="54" Height="54" Opacity="0.55">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#E8763F" Offset="0"/>
+                    <GradientStop Color="#00E8763F" Offset="1"/>
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+            <Ellipse.Effect>
+                <BlurEffect Radius="18"/>
+            </Ellipse.Effect>
+            <Ellipse.RenderTransform>
+                <ScaleTransform x:Name="HaloScale" CenterX="27" CenterY="27" ScaleX="1" ScaleY="1"/>
+            </Ellipse.RenderTransform>
+        </Ellipse>
+
+        <!-- Anéis de amplitude: expandem com a voz. -->
+        <Ellipse x:Name="RingOuter" Width="58" Height="58" Stroke="#E8763F" StrokeThickness="0.8" Opacity="0.16">
+            <Ellipse.RenderTransform>
+                <ScaleTransform x:Name="RingOuterScale" CenterX="29" CenterY="29" ScaleX="1" ScaleY="1"/>
+            </Ellipse.RenderTransform>
+        </Ellipse>
+        <Ellipse x:Name="RingInner" Width="44" Height="44" Stroke="#E8763F" StrokeThickness="1" Opacity="0.3">
+            <Ellipse.RenderTransform>
+                <ScaleTransform x:Name="RingInnerScale" CenterX="22" CenterY="22" ScaleX="1" ScaleY="1"/>
+            </Ellipse.RenderTransform>
+        </Ellipse>
+
+        <!-- Núcleo: o "corpo" do orbe. O gradiente deslocado sugere uma fonte de luz e dá volume
+             sem precisar de 3D de verdade. -->
+        <Ellipse x:Name="Core" Width="30" Height="30">
+            <Ellipse.Fill>
+                <RadialGradientBrush GradientOrigin="0.32,0.28" Center="0.5,0.5" RadiusX="0.62" RadiusY="0.62">
+                    <GradientStop x:Name="CoreLight" Color="#FFB183" Offset="0"/>
+                    <GradientStop x:Name="CoreMid" Color="#E8763F" Offset="0.55"/>
+                    <GradientStop x:Name="CoreDark" Color="#A8431A" Offset="1"/>
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+            <Ellipse.RenderTransform>
+                <ScaleTransform x:Name="CoreScale" CenterX="15" CenterY="15" ScaleX="1" ScaleY="1"/>
+            </Ellipse.RenderTransform>
+        </Ellipse>
+
+        <!-- Brilho especular: o detalhe que faz o núcleo parecer esférico em vez de um círculo. -->
+        <Ellipse Width="9" Height="6" Fill="#59FFFFFF" Margin="-9,-11,0,0"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+            <Ellipse.Effect>
+                <BlurEffect Radius="3"/>
+            </Ellipse.Effect>
+        </Ellipse>
+    </Grid>
 </Window>

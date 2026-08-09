@@ -510,7 +510,11 @@ public partial class App : System.Windows.Application
         if (!AudioRecorder.HasLikelySpeech(wav, out var skipReason))
         {
             DebugLog.Write($"StopAndProcessAsync: descartado sem enviar — {skipReason}");
-            UpdateOverlay(OverlayState.Cancelled, "Nenhuma fala detectada");
+            UpdateOverlay(OverlayState.Cancelled);
+            // O overlay virou só o orbe (D025) e não carrega mais texto. Sem este aviso, o usuário
+            // falaria, nada seria inserido e nada explicaria o porquê — o orbe cinza sozinho não
+            // distingue "não ouvi nada" de "deu erro".
+            ToastWindow.Show("Nenhuma fala detectada — a gravação não foi enviada.", ToastKind.Info);
             HideOverlayAfter(TimeSpan.FromSeconds(1.2));
             _state = AppState.Idle;
             return;
@@ -548,7 +552,8 @@ public partial class App : System.Windows.Application
             var result = await _backend.TranscribeAsync(wav);
             if (string.IsNullOrWhiteSpace(result.Text))
             {
-                UpdateOverlay(OverlayState.Cancelled, "Nenhuma fala detectada");
+                UpdateOverlay(OverlayState.Cancelled);
+                ToastWindow.Show("Nenhuma fala detectada no áudio enviado.", ToastKind.Info);
             }
             else
             {
@@ -603,7 +608,14 @@ public partial class App : System.Windows.Application
     private void ShowOverlay(OverlayState state)
     {
         _hideTimer?.Stop();
-        _overlay ??= new OverlayWindow();
+        if (_overlay == null)
+        {
+            _overlay = new OverlayWindow();
+            // O orbe lê o nível do microfone a cada quadro, em vez de o gravador empurrar eventos:
+            // o NAudio entrega blocos numa thread própria a cada ~100ms, e um evento por bloco
+            // encheria a fila do Dispatcher sem melhorar em nada uma animação (ver D025).
+            _overlay.LevelSource = () => _recorder.CurrentLevel;
+        }
         _overlay.SetState(state);
         _overlay.Show();
     }

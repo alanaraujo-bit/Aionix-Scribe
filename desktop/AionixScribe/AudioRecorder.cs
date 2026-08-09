@@ -53,9 +53,38 @@ public sealed class AudioRecorder : IDisposable
         IsRecording = true;
     }
 
+    /// Nível de voz do último bloco capturado, entre 0 e 1. Alimenta a animação do overlay.
+    ///
+    /// É lido de um campo simples de propósito: o NAudio entrega blocos a cada ~100ms numa thread
+    /// própria, e disparar um evento por bloco para a UI encheria a fila do Dispatcher. Quem desenha
+    /// lê este valor no ritmo do próprio quadro, e blocos perdidos entre um quadro e outro não fazem
+    /// falta nenhuma para uma animação.
+    public volatile float CurrentLevel;
+
+    /// Divisor que mapeia RMS bruto para 0..1. Fala normal fica na casa dos milhares (ver
+    /// SilenceRmsThreshold, que usa a mesma medida para decidir se vale enviar o áudio); este valor
+    /// coloca uma conversa comum na metade da escala e deixa margem para picos.
+    private const float LevelReference = 3000f;
+
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
         _writer?.Write(e.Buffer, 0, e.BytesRecorded);
+
+        double sumSquares = 0;
+        var samples = 0;
+        for (var i = 0; i + 1 < e.BytesRecorded; i += 2)
+        {
+            double sample = (short)(e.Buffer[i] | (e.Buffer[i + 1] << 8));
+            sumSquares += sample * sample;
+            samples++;
+        }
+        if (samples == 0) return;
+
+        var rms = Math.Sqrt(sumSquares / samples);
+        // Raiz quadrada porque a percepção de volume não é linear: sem ela, o orbe passaria quase
+        // todo o tempo perto do mínimo e só reagiria a grito.
+        var normalized = Math.Sqrt(Math.Clamp(rms / LevelReference, 0, 1));
+        CurrentLevel = (float)normalized;
     }
 
     /// Para a captura e retorna o WAV completo. Retorna null se não havia gravação em andamento.
@@ -66,6 +95,10 @@ public sealed class AudioRecorder : IDisposable
         _waveIn.StopRecording();
         _waveIn.DataAvailable -= OnDataAvailable;
         _writer.Flush();
+
+        // Sem isto o nível fica congelado no último bloco capturado, e o orbe do overlay entraria
+        // no estado "processando" preso na amplitude da última sílaba falada.
+        CurrentLevel = 0;
 
         var bytes = _buffer.ToArray();
 
