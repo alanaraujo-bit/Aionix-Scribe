@@ -17,7 +17,9 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://aionix-scribe.vercel.app"),
+  // Domínio canônico: é a base das URLs absolutas de og:image. Apontar para o endereço antigo
+  // faria o preview de link ser servido de um domínio diferente do que a pessoa recebeu.
+  metadataBase: new URL("https://scribe.aionixdev.com"),
   title: "Aionix Scribe — falar é uma forma superior de digitar",
   description:
     "Ditado por voz inteligente para Windows. Pressione um atalho, fale, e o texto limpo aparece onde o cursor estiver — em qualquer aplicativo.",

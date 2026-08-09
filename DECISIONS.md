@@ -473,3 +473,16 @@ Removido o texto por decisão do proprietário. A consequência não é cosméti
 
 ### Validado
 Build limpo e captura de tela do overlay real em execução, nas duas versões (a grande, que motivou o ajuste, e a compacta final). **Pendente do proprietário**: falar de verdade e julgar se o movimento acompanha bem a voz — a reação ao áudio ao vivo é o que nenhuma captura estática prova.
+
+### D024 — domínio próprio, favicon e preview de link
+
+Domínio de produção definido pelo proprietário: **`https://scribe.aionixdev.com`** (substitui o subdomínio da Vercel).
+
+**Favicon e imagem de preview gerados em código** (`app/icon.tsx`, `app/opengraph-image.tsx`, via `ImageResponse`) em vez de arquivos binários: um `.ico` não é revisável num diff, e a marca — as quatro barras de áudio em laranja sobre o fundo escuro do tema — passa a vir da mesma fonte que o wordmark do site e o ícone da bandeja.
+
+Três problemas que **só apareceram no domínio novo**, nenhum deles visível em build:
+1. **CORS quebraria o formulário**: o backend só liberava `*.vercel.app`, então a lista de espera falharia silenciosamente em `scribe.aionixdev.com`. Domínio adicionado explicitamente, mantendo a regex dos previews.
+2. **`metadataBase` apontava para o endereço antigo**: o `og:image` seria servido de um domínio diferente do que a pessoa recebeu no link.
+3. **A imagem de preview saía escrita "dedigitar"**: o renderizador colapsa o espaço solto entre um texto e um `<span>` irmão. Corrigido com NBSP explícito — encontrado ao **abrir a imagem gerada**, que é a única forma de ver isso.
+
+Observação operacional: o alias `aionix-scribe.vercel.app` não é herdado automaticamente por deploys novos — o domínio precisa estar configurado no projeto, senão um deploy de produção responde `DEPLOYMENT_NOT_FOUND` no endereço público enquanto a URL do deploy funciona normalmente.

@@ -11,7 +11,11 @@ const app = Fastify({ logger: true, bodyLimit: 30 * 1024 * 1024 });
 // Origens da Vercel entram por regex porque cada deploy de preview ganha um subdomínio novo —
 // fixar uma lista quebraria todo preview antes de ir para produção.
 await app.register(cors, {
-  origin: [/^https:\/\/[a-z0-9-]+\.vercel\.app$/, "http://localhost:3000"],
+  origin: [
+    "https://scribe.aionixdev.com", // domínio de produção do site
+    /^https:\/\/[a-z0-9-]+\.vercel\.app$/, // previews da Vercel (subdomínio novo a cada deploy)
+    "http://localhost:3000",
+  ],
   methods: ["POST", "GET", "OPTIONS"],
 });
 
