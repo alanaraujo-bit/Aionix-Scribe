@@ -51,6 +51,30 @@ public static class UpdateSettings
         }
     }
 
+    private static readonly string LastRunPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "AionixScribe", "last-run-version.txt");
+
+    /// Devolve a versão que rodou da última vez e grava a atual. Serve para confirmar ao usuário
+    /// que a atualização realmente entrou: sem isso, ele vê o app fechar e reabrir e não tem como
+    /// saber se funcionou sem ir procurar o número em Configurações.
+    /// Primeira execução (arquivo ausente) devolve null — instalação nova não é atualização.
+    public static string? ExchangeLastRunVersion(string currentVersion)
+    {
+        string? previous = null;
+        try
+        {
+            if (File.Exists(LastRunPath)) previous = File.ReadAllText(LastRunPath).Trim();
+            Directory.CreateDirectory(Path.GetDirectoryName(LastRunPath)!);
+            File.WriteAllText(LastRunPath, currentVersion);
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"UpdateSettings.ExchangeLastRunVersion falhou: {ex.Message}");
+        }
+        return string.IsNullOrWhiteSpace(previous) ? null : previous;
+    }
+
     public static void Clear()
     {
         try

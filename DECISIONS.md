@@ -362,3 +362,15 @@ A verificação passou a falhar com 404 e a causa não era o código: **o reposi
 - SHA-256 do manifesto confere com o instalador realmente publicado (baixado e conferido).
 
 **Pendente do proprietário**: o clique final — abrir o app, ver o selo, ler o painel e mandar atualizar, confirmando que o app fecha, instala e reabre na 0.4.0.
+
+### D022 — correção: o app não reabria após a atualização (0.5.0)
+
+Relatado ao vivo pelo proprietário: a atualização baixava, instalava e **fechava o app sem reabrir**.
+
+Causa: `RestartApplications=yes` delega a reabertura ao Restart Manager do Windows, que só reabre programas registrados via `RegisterApplicationRestart()` — o Aionix Scribe não se registra. E a entrada `[Run]` que abre o app ao fim da instalação tinha `skipifsilent`, justamente o modo usado pela atualização automática. Ou seja: os dois caminhos possíveis de reabertura estavam desligados ao mesmo tempo.
+
+Corrigido com uma segunda entrada `[Run]` com `Check: WizardSilent`, que reabre explicitamente no modo silencioso. Uma reabertura dupla (Restart Manager + esta linha) é inofensiva porque o mutex de instância única encerra a segunda cópia — o D022 já tinha adicionado o mutex por outro motivo, e ele pagou aqui.
+
+Adicionada também confirmação visível: ao voltar, se a versão em execução difere da última registrada, o app avisa na bandeja em qual versão está agora. Sem isso, o usuário via o app fechar e reabrir sem nenhuma pista de que deu certo. **Limitação honesta**: quem atualizar a partir da 0.4.0 não verá esse aviso, porque a 0.4.0 nunca gravou a versão em execução — o aviso passa a funcionar da 0.5.0 em diante.
+
+Validado ao vivo pelo proprietário: atualização instalada com o app aberto, reabertura automática, e uma única instância em execução ao final.

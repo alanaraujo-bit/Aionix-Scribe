@@ -92,8 +92,25 @@ public partial class App : System.Windows.Application
     /// Primeira verificação com atraso para não competir com o startup (registro de atalho, bandeja,
     /// onboarding), e depois de 6 em 6 horas — o app costuma ficar dias aberto na bandeja, então
     /// verificar só na inicialização deixaria quem nunca reinicia sem nunca saber de versão nova.
+    /// Se a versão mudou entre uma execução e a seguinte, foi atualização — avisa. Roda antes da
+    /// primeira verificação para o usuário ver a confirmação logo ao voltar, não 20 segundos depois.
+    private void AnnounceUpdateIfVersionChanged()
+    {
+        var current = UpdateService.CurrentVersionDisplay;
+        var previous = UpdateSettings.ExchangeLastRunVersion(current);
+        if (previous == null || previous == current) return;
+
+        DebugLog.Write($"update: versão mudou de {previous} para {current}");
+        UpdateSettings.Clear(); // adiamento da versão antiga não faz mais sentido
+        PendingUpdate = null;
+        _tray?.ShowBalloonTip(6000, "Aionix Scribe",
+            $"Atualizado para a versão {current}. Tudo pronto — seu atalho e seu histórico continuam como estavam.",
+            Forms.ToolTipIcon.Info);
+    }
+
     private void StartUpdateChecks()
     {
+        AnnounceUpdateIfVersionChanged();
         _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
         _updateTimer.Tick += async (_, _) => await CheckForUpdateAsync();
         _updateTimer.Start();

@@ -1,0 +1,15 @@
+{
+  "version": "0.5.0",
+  "headline": "A atualização agora termina sozinha",
+  "summary": "Na versão anterior, atualizar fechava o Aionix Scribe e deixava você sem nada aberto — era preciso abrir o app de novo na mão. Agora ele volta sozinho e diz que deu certo.",
+  "highlights": [
+    {
+      "title": "O app reabre sozinho depois de atualizar",
+      "body": "Antes, o instalador contava com um mecanismo do Windows que só reabre programas que se registram para isso — e o Aionix Scribe não se registrava, então nada voltava. Agora a reabertura é explícita e não depende disso."
+    },
+    {
+      "title": "Confirmação de que a atualização entrou",
+      "body": "Ao voltar, o app avisa na bandeja em qual versão você está agora. Sem isso, a única forma de saber se a atualização funcionou era ir procurar o número em Configurações."
+    }
+  ]
+}

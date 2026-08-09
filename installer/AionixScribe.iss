@@ -107,7 +107,16 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "AionixScribe"; Flags: uninsdeletevalue; Tasks: not startupicon
 
 [Run]
+; Instalação interativa: caixa marcável na última tela.
 Filename: "{app}\{#AppExe}"; Description: "Abrir o {#AppName} agora"; Flags: nowait postinstall skipifsilent
+
+; Instalação SILENCIOSA (o caminho da atualização automática): reabre o app explicitamente.
+; Não dá para confiar no RestartApplications aqui — o Restart Manager do Windows só reabre
+; programas que se registraram via RegisterApplicationRestart(), o que este app não faz. Sem esta
+; linha, atualizar fechava o Aionix Scribe e deixava o usuário sem nada aberto (relatado ao vivo).
+; Uma eventual reabertura dupla (RM + esta linha) é inofensiva: o mutex de instância única
+; encerra a segunda cópia imediatamente.
+Filename: "{app}\{#AppExe}"; Flags: nowait; Check: WizardSilent
 
 [Code]
 // Os dados do usuário (histórico de ditados, atalho, tema, gravações pendentes) vivem em
