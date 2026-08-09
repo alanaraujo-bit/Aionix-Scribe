@@ -19,6 +19,7 @@ public partial class App : System.Windows.Application
     private Forms.NotifyIcon? _tray;
     private DispatcherTimer? _hideTimer;
     private Forms.ToolStripMenuItem? _pendingMenuItem;
+    private Forms.ContextMenuStrip? _trayMenu;
     private MainPanelWindow? _mainPanel;
     private bool? _appliedLightTheme;
 
@@ -89,9 +90,6 @@ public partial class App : System.Windows.Application
         StartUpdateChecks();
     }
 
-    /// Primeira verificação com atraso para não competir com o startup (registro de atalho, bandeja,
-    /// onboarding), e depois de 6 em 6 horas — o app costuma ficar dias aberto na bandeja, então
-    /// verificar só na inicialização deixaria quem nunca reinicia sem nunca saber de versão nova.
     /// Se a versão mudou entre uma execução e a seguinte, foi atualização — avisa. Roda antes da
     /// primeira verificação para o usuário ver a confirmação logo ao voltar, não 20 segundos depois.
     private void AnnounceUpdateIfVersionChanged()
@@ -103,11 +101,13 @@ public partial class App : System.Windows.Application
         DebugLog.Write($"update: versão mudou de {previous} para {current}");
         UpdateSettings.Clear(); // adiamento da versão antiga não faz mais sentido
         PendingUpdate = null;
-        _tray?.ShowBalloonTip(6000, "Aionix Scribe",
-            $"Atualizado para a versão {current}. Tudo pronto — seu atalho e seu histórico continuam como estavam.",
-            Forms.ToolTipIcon.Info);
+        ToastWindow.Show($"Atualizado para a versão {current}. Tudo pronto — seu atalho e seu histórico continuam como estavam.",
+            ToastKind.Info);
     }
 
+    /// Primeira verificação com atraso para não competir com o startup (registro de atalho, bandeja,
+    /// onboarding), e depois de 6 em 6 horas — o app costuma ficar dias aberto na bandeja, então
+    /// verificar só na inicialização deixaria quem nunca reinicia sem nunca saber de versão nova.
     private void StartUpdateChecks()
     {
         AnnounceUpdateIfVersionChanged();
@@ -149,11 +149,10 @@ public partial class App : System.Windows.Application
         // não a cada verificação de 6 horas.
         if (!isNew || UpdateSettings.IsSnoozed(manifest.Version)) return;
 
-        _tray?.ShowBalloonTip(9000, "Aionix Scribe",
-            string.IsNullOrWhiteSpace(manifest.Headline)
+        ToastWindow.Show(string.IsNullOrWhiteSpace(manifest.Headline)
                 ? $"A versão {manifest.Version} está disponível. Abra o app para ver o que mudou."
                 : $"Versão {manifest.Version}: {manifest.Headline}",
-            Forms.ToolTipIcon.Info);
+            ToastKind.Info);
     }
 
     /// Não usa ShowDialog — o onboarding é uma janela comum, o usuário pode ignorá-la e continuar
@@ -190,6 +189,10 @@ public partial class App : System.Windows.Application
         Resources.MergedDictionaries.Add(themeDictionary);
         Resources.MergedDictionaries.Add(stylesDictionary);
         _appliedLightTheme = useLight;
+
+        // O menu da bandeja é WinForms e não reage a DynamicResource — precisa ser repintado à mão
+        // a cada troca, senão quem sai do escuro para o claro fica com o menu escuro para sempre.
+        if (_trayMenu != null) TrayMenuTheme.Apply(_trayMenu);
     }
 
     /// SystemEvents dispara em thread própria, não na do Dispatcher — nunca tocar em
@@ -218,9 +221,8 @@ public partial class App : System.Windows.Application
         HasActiveHotkey = false;
         CurrentHotkeyLabel = "sem atalho disponível";
         _tray!.Text = "Aionix Scribe — sem atalho disponível";
-        _tray!.ShowBalloonTip(8000, "Aionix Scribe",
-            "Todos os atalhos padrão já estão em uso por outros aplicativos. Abra Configurações para escolher outro.",
-            Forms.ToolTipIcon.Warning);
+        ToastWindow.Show("Todos os atalhos padrão já estão em uso por outros aplicativos. Abra Configurações para escolher outro.",
+            ToastKind.Warning);
     }
 
     /// Cria o mecanismo do modo pedido ANTES de descartar o atual — se a criação lançar (conflito
@@ -276,7 +278,7 @@ public partial class App : System.Windows.Application
     private void NotifyActiveHotkey()
     {
         _tray!.Text = $"Aionix Scribe — {CurrentHotkeyLabel}";
-        _tray!.ShowBalloonTip(3000, "Aionix Scribe", $"Atalho ativo: {CurrentHotkeyLabel}", Forms.ToolTipIcon.Info);
+        ToastWindow.Show($"Atalho ativo: {CurrentHotkeyLabel}", ToastKind.Info);
     }
 
     /// Chamado pela seção de Configurações quando o usuário captura um novo atalho. Em caso de conflito,
@@ -352,7 +354,7 @@ public partial class App : System.Windows.Application
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        _tray?.ShowBalloonTip(5000, "Aionix Scribe", $"Erro inesperado: {e.Exception.Message}", Forms.ToolTipIcon.Error);
+        ToastWindow.Show($"Erro inesperado: {e.Exception.Message}", ToastKind.Error);
         _state = AppState.Idle;
         e.Handled = true; // não derruba o app por um erro pontual — melhor continuar disponível
     }
@@ -380,8 +382,7 @@ public partial class App : System.Windows.Application
             var manifest = await UpdateService.CheckAsync();
             if (manifest == null)
             {
-                _tray?.ShowBalloonTip(5000, "Aionix Scribe",
-                    $"Você já está na versão mais recente ({UpdateService.CurrentVersionDisplay}).", Forms.ToolTipIcon.Info);
+                ToastWindow.Show($"Você já está na versão mais recente ({UpdateService.CurrentVersionDisplay}).", ToastKind.Info);
                 return;
             }
             UpdateSettings.Clear();
@@ -389,6 +390,8 @@ public partial class App : System.Windows.Application
         });
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Sair", null, (_, _) => Shutdown());
+        _trayMenu = menu;
+        TrayMenuTheme.Apply(menu);
         _tray.ContextMenuStrip = menu;
         _tray.DoubleClick += (_, _) => OpenMainPanel();
 
@@ -473,13 +476,13 @@ public partial class App : System.Windows.Application
         catch (NoMicrophoneException ex)
         {
             DebugLog.Write($"StartListening: {ex.Message}");
-            _tray?.ShowBalloonTip(6000, "Aionix Scribe", ex.Message, Forms.ToolTipIcon.Warning);
+            ToastWindow.Show(ex.Message, ToastKind.Warning);
             return;
         }
         catch (Exception ex)
         {
             DebugLog.Write($"StartListening: falha ao acessar microfone: {ex}");
-            _tray?.ShowBalloonTip(5000, "Aionix Scribe", $"Não foi possível acessar o microfone: {ex.Message}", Forms.ToolTipIcon.Error);
+            ToastWindow.Show($"Não foi possível acessar o microfone: {ex.Message}", ToastKind.Error);
             return; // permanece em Idle — não há gravação para processar depois
         }
         _state = AppState.Listening;
@@ -526,9 +529,8 @@ public partial class App : System.Windows.Application
         {
             PendingRecordings.Save(wav);
             UpdateOverlay(OverlayState.Error, "Erro — gravação preservada");
-            _tray?.ShowBalloonTip(6000, "Aionix Scribe",
-                "Não consegui transcrever depois de duas tentativas. Sua gravação foi preservada — use \"Reprocessar pendências\" no menu da bandeja quando a conexão voltar.",
-                Forms.ToolTipIcon.Warning);
+            ToastWindow.Show("Não consegui transcrever depois de duas tentativas. Sua gravação foi preservada — use \"Reprocessar pendências\" no menu da bandeja quando a conexão voltar.",
+                ToastKind.Warning);
             RefreshPendingMenu();
         }
 
@@ -590,7 +592,7 @@ public partial class App : System.Windows.Application
         }
         else
         {
-            _tray?.ShowBalloonTip(4000, "Aionix Scribe", "Ainda não consegui reprocessar essa gravação. Ela continua preservada.", Forms.ToolTipIcon.Warning);
+            ToastWindow.Show("Ainda não consegui reprocessar essa gravação. Ela continua preservada.", ToastKind.Warning);
         }
 
         HideOverlayAfter(TimeSpan.FromSeconds(1.5));

@@ -374,3 +374,34 @@ Corrigido com uma segunda entrada `[Run]` com `Check: WizardSilent`, que reabre 
 Adicionada também confirmação visível: ao voltar, se a versão em execução difere da última registrada, o app avisa na bandeja em qual versão está agora. Sem isso, o usuário via o app fechar e reabrir sem nenhuma pista de que deu certo. **Limitação honesta**: quem atualizar a partir da 0.4.0 não verá esse aviso, porque a 0.4.0 nunca gravou a versão em execução — o aviso passa a funcionar da 0.5.0 em diante.
 
 Validado ao vivo pelo proprietário: atualização instalada com o app aberto, reabertura automática, e uma única instância em execução ao final.
+
+---
+
+## D023 — Superfícies nativas do Windows substituídas pela interface do app
+
+*Pedido do proprietário, a partir de uma captura do menu da bandeja branco sobre um app escuro: "o que for nosso e a gente puder mudar, vamos mudar... não deve ficar a nossa interface mais a do Windows. Ou a gente coloca a nossa e bloqueia a do Windows, ou deixa só do Windows."*
+
+Regra adotada: **nunca as duas ao mesmo tempo**. Onde a nossa entra, a do Windows sai junto.
+
+### As três superfícies e o grau real de controle
+| Superfície | Controle possível | Decisão |
+|---|---|---|
+| Menu da bandeja (`ContextMenuStrip`) | Total, via renderer e color table próprios | Nosso |
+| Confirmação (`MessageBox`) | Nenhum — o Windows não aceita personalização | Substituído por `ConfirmDialog` |
+| Avisos (`ShowBalloonTip`) | Nenhum — são notificações desenhadas pelo shell | Substituídos por `ToastWindow` |
+
+### Menu da bandeja
+É WinForms (o `NotifyIcon` exige `ContextMenuStrip`), então **não enxerga os dicionários de tema do WPF** — nasce branco padrão. As cores são lidas dos brushes do tema **em tempo de execução**, não copiadas como literais, e `App.ApplyTheme` repinta o menu a cada troca; sem isso, quem saísse do escuro para o claro ficaria com o menu escuro para sempre. A margem de ícone foi desligada (teima em ficar clara e nenhum item usa ícone) e a cor de item **desabilitado** é definida explicitamente: o renderer padrão usa o cinza do sistema, que sobre fundo escuro faz "Reprocessar pendências (0)" sumir em vez de apenas parecer apagado. A fonte Sora do app precisou ser carregada em memória via `PrivateFontCollection` — ela é recurso embutido e o GDI+ não enxerga fonte não instalada no Windows.
+
+### Avisos próprios: o que se ganha e o que se perde
+Notificações do Windows aparecem com o app fechado e ficam guardadas na Central de Ações; as nossas, não. Aceitamos a troca porque **o estado durável já é representado em lugares permanentes do app** — contador de pendências no menu da bandeja, selo de atualização na janela. Estes avisos são anúncios passageiros, não a única pista de que algo aconteceu.
+
+`ShowActivated="False"` no `ToastWindow` não é estética, é requisito: o app existe para inserir texto no aplicativo em que a pessoa está trabalhando, e um aviso que rouba o foco mudaria o destino do ditado no meio do uso.
+
+**Bug encontrado na captura de tela, não em teoria**: posicionar o aviso logo após `Show()` usa `ActualHeight` ainda zero (o layout não rodou), e ele nasce com o rodapé cortado na borda inferior. Corrigido com `UpdateLayout()` antes de posicionar, mais reposicionamento em `ContentRendered`/`SizeChanged` para o caso de o texto quebrar em mais linhas do que a primeira medição previa.
+
+### Confirmação própria
+`ConfirmDialog` é modal de verdade (`ShowDialog` com `Owner`), aceita Esc (não há barra de título para fechar) e **começa com o foco em "Cancelar"** — numa ação destrutiva, um Enter distraído não pode ser o que apaga os dados do usuário.
+
+### Fora de alcance, e por quê
+O assistente do instalador já está no limite do que o Inno Setup permite personalizar, e o aviso do SmartScreen é do sistema operacional — só desaparece com assinatura de código (pendência #5). Nenhum dos dois é "nossa interface mais a do Windows": são momentos em que o app ainda não está em execução.

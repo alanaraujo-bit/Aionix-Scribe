@@ -55,16 +55,15 @@ public partial class HistorySection : System.Windows.Controls.UserControl
     {
         if (HistoryStore.List().Count == 0) return;
 
-        // MessageBox precisa da Window dona, não do UserControl — sem isso a caixa pode abrir atrás
-        // da janela principal e travar a interação sem o usuário entender o porquê.
-        var result = System.Windows.MessageBox.Show(
+        // Diálogo próprio, não MessageBox: o do Windows não aceita personalização nenhuma e abria
+        // uma caixa cinza do sistema no meio de uma interface escura (ver D023).
+        var confirmed = ConfirmDialog.Ask(
             Window.GetWindow(this),
-            "Apagar todo o histórico de ditados? Essa ação não pode ser desfeita.",
             "Limpar histórico",
-            System.Windows.MessageBoxButton.YesNo,
-            System.Windows.MessageBoxImage.Warning);
+            "Todos os seus ditados guardados nesta máquina serão apagados. Essa ação não pode ser desfeita.",
+            confirmLabel: "Apagar tudo");
 
-        if (result == System.Windows.MessageBoxResult.Yes)
+        if (confirmed)
         {
             HistoryStore.Clear();
             Refresh();
