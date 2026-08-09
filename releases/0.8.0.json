@@ -1,0 +1,19 @@
+{
+  "version": "0.8.0",
+  "headline": "O indicador de ditado virou um orbe que responde à sua voz",
+  "summary": "No lugar da caixinha com o texto \"Ouvindo...\", agora aparece um orbe discreto que pulsa junto com o que você fala. Menos ruído na tela, e dá para ver de canto de olho que ele está te ouvindo de verdade.",
+  "highlights": [
+    {
+      "title": "Ele reage ao seu microfone de verdade",
+      "body": "O orbe não roda uma animação em laço fingindo reagir: ele mede o volume real da sua voz e expande junto. Se ele não se mexe enquanto você fala, é sinal de que o microfone não está captando — o que antes você só descobria no fim."
+    },
+    {
+      "title": "Bem menor e sem texto",
+      "body": "O indicador ocupa uma fração do espaço anterior e ficou só com o orbe. O estado é lido pela cor: laranja enquanto ouve e processa, verde quando conclui, vermelho quando algo falha."
+    },
+    {
+      "title": "Avisos explicam o que a cor não explica",
+      "body": "Quando nenhuma fala é detectada, agora aparece um aviso dizendo isso — antes essa informação vivia no texto do indicador, e sem ela você ficaria sem saber por que nada foi escrito."
+    }
+  ]
+}
