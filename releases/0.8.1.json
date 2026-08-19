@@ -1,0 +1,15 @@
+{
+  "version": "0.8.1",
+  "headline": "Scroll suave no histórico e em todas as telas",
+  "summary": "O scroll do mouse estava engessado: no histórico, cada notch da roda pulava uma distância diferente (às vezes rápido demais, às vezes travado), e nas outras telas o scroll saltava sem transição nenhuma. Agora o scroll é suave e consistente em todo o app.",
+  "highlights": [
+    {
+      "title": "Histórico não pula mais item a item",
+      "body": "A lista de ditados rolava um item inteiro por vez, e como cada ditado tem uma altura diferente, o movimento parecia aleatório. Agora a rolagem é por pixel, do tamanho certo para cada notch do mouse."
+    },
+    {
+      "title": "Scroll animado em vez de saltos secos",
+      "body": "Em qualquer tela com scroll — Histórico, Ditado, Configurações e Atualização — cada movimento da roda do mouse agora desliza suavemente até o novo ponto, em vez de saltar direto."
+    }
+  ]
+}

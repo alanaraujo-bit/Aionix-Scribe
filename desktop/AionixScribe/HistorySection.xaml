@@ -1,6 +1,7 @@
 <UserControl x:Class="AionixScribe.HistorySection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:AionixScribe"
              FontFamily="./Fonts/#Sora">
     <Grid Margin="28,26,24,24">
         <Grid.RowDefinitions>
@@ -24,8 +25,14 @@
 
         <!-- ListBox com container transparente: sem isso o WPF desenha o realce azul nativo de
              seleção por cima dos cards, quebrando a paleta inteira. -->
+        <!-- ScrollUnit="Pixel" evita o padrão do WPF de rolar por item inteiro (itens do histórico
+             têm alturas diferentes, então isso fazia o scroll parecer engessado); SmoothScroll
+             anima cada notch do mouse em vez de saltar direto para o novo offset. -->
         <ListBox x:Name="EntriesList" Grid.Row="1" Background="Transparent" BorderThickness="0"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 VirtualizingPanel.ScrollUnit="Pixel"
+                 local:SmoothScroll.IsEnabled="True"
+                 Padding="0,0,4,0">
             <ListBox.Resources>
                 <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}"/>
             </ListBox.Resources>

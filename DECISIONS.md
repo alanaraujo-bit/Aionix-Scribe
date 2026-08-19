@@ -486,3 +486,19 @@ Três problemas que **só apareceram no domínio novo**, nenhum deles visível e
 3. **A imagem de preview saía escrita "dedigitar"**: o renderizador colapsa o espaço solto entre um texto e um `<span>` irmão. Corrigido com NBSP explícito — encontrado ao **abrir a imagem gerada**, que é a única forma de ver isso.
 
 Observação operacional: o alias `aionix-scribe.vercel.app` não é herdado automaticamente por deploys novos — o domínio precisa estar configurado no projeto, senão um deploy de produção responde `DEPLOYMENT_NOT_FOUND` no endereço público enquanto a URL do deploy funciona normalmente.
+
+---
+
+## D026 — correção: scroll engessado em todas as telas com rolagem (0.8.1)
+
+*Pedido do proprietário: o scroll do mouse no Histórico (e em qualquer outra tela) estava "ora rápido, ora travado" — precisava ficar elegante, intuitivo e performático.*
+
+Duas causas distintas, cada uma numa parte diferente da UI:
+
+1. **Histórico** é uma `ListBox` virtualizada. Por padrão o WPF rola esse tipo de lista *por item inteiro*, não por pixel — e como cada ditado tem uma altura diferente (texto curto vs. longo), cada notch da roda do mouse andava uma distância diferente e imprevisível. Corrigido com `VirtualizingPanel.ScrollUnit="Pixel"`, que mantém a virtualização (importante ter, mesmo com o limite de 200 itens) mas passa a rolar por pixel.
+2. **Ditado, Configurações e Atualização** usam `ScrollViewer` puro, que já rolava por pixel, mas sem transição nenhuma — cada notch era um salto seco.
+
+Para as duas, criado `SmoothScroll` (`desktop/AionixScribe/SmoothScroll.cs`): um comportamento anexável via `local:SmoothScroll.IsEnabled="True"` que intercepta a roda do mouse e anima o deslocamento até o novo offset (`QuadraticEase`, 280ms) em vez de aplicar o salto direto. Como `ScrollViewer.VerticalOffset` não é uma `DependencyProperty` (só um getter), a animação roda sobre uma propriedade auxiliar anexada, que a cada frame chama `ScrollToVerticalOffset` — o mesmo truque de proxy animável, só que para offset de scroll em vez de opacidade/posição como em `Motion.cs`.
+
+### Validado
+Build limpo (`dotnet build`, 0 erros/avisos). **Pendente do proprietário**: sentir o scroll de verdade com o mouse — é o tipo de ajuste que só se julga usando.
