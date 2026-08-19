@@ -502,3 +502,30 @@ Para as duas, criado `SmoothScroll` (`desktop/AionixScribe/SmoothScroll.cs`): um
 
 ### Validado
 Build limpo (`dotnet build`, 0 erros/avisos). **Pendente do proprietário**: sentir o scroll de verdade com o mouse — é o tipo de ajuste que só se julga usando.
+
+---
+
+## D027 — Painel interno de custo real da Gemini ("Custo de IA")
+
+*Pedido do proprietário: acompanhar dentro da própria ferramenta quanto ainda resta de orçamento de IA e quanto já foi gasto, com histórico por chamada.*
+
+### Decisão 1 — Nova tabela `gemini_calls`, deliberadamente fora do metering de assinatura
+`usage_events`/`usage_periods` (D018) existem para o metering **por usuário/assinatura** do P3, que ainda não tem contas reais — exigiriam um `userId` inexistente no fluxo atual do desktop. `gemini_calls` é mais simples e não depende de conta nenhuma: uma linha por chamada real à Gemini, com tokens e `costUsd` já calculado e **gravado no momento da chamada** (não recalculado na leitura) — se o preço da Gemini mudar depois, o histórico já gravado continua refletindo o que foi cobrado de verdade naquele dia.
+
+### Decisão 2 — Preço confirmado na fonte oficial, com aviso de validade
+`backend/src/config/pricing.ts`: USD 0.75 / 1M tokens de entrada, USD 3.75 / 1M de saída — confirmado em `ai.google.dev/gemini-api/docs/pricing` em 2026-08-19 para `gemini-3.6-flash`, mesma disciplina do `tiers.ts` para preços do Stripe (nunca chutado). O próprio Google já avisa reajuste programado para 1º/01/2027 (dobra para USD 1.50 / USD 7.50) — como não há automação de calendário aqui, isso fica marcado em comentário para alguém lembrar de atualizar `GEMINI_PRICE_INPUT_PER_1M_USD`/`GEMINI_PRICE_OUTPUT_PER_1M_USD` no Railway quando a data chegar, senão o painel passa a subestimar o gasto pela metade sem erro nenhum aparecendo.
+
+`GEMINI_MONTHLY_BUDGET_USD` é opcional: sem ele configurado, o painel mostra só o gasto, sem "saldo restante" — inventar um teto que ninguém decidiu seria pior que não mostrar nada.
+
+### Decisão 3 — Visível no app para todo mundo, sem senha própria (escolha explícita do proprietário)
+Perguntado onde o painel deveria morar, o proprietário escolheu **aba dentro do app desktop** (não uma página admin separada no site) e **sem proteção própria** — apenas atrás do mesmo stopgap já existente do `/api/transcribe` (`X-App-Secret`, D013).
+
+**Ressalva conhecida e aceita explicitamente**: o app desktop é o MESMO binário que qualquer pessoa baixa no instalador público (GitHub Releases). Isso significa que **qualquer cliente que instale o Aionix Scribe consegue abrir a aba "Custo de IA" e ver o gasto total do negócio com a Gemini** (hoje, agregado de todos os usuários — não há separação por conta, porque contas reais ainda não existem, P3). O `X-App-Secret` embutido no `.exe` (D013) protege contra "alguém achou a URL do backend por fora", não contra "instalou o app oficial e navegou até essa aba" — é a mesma limitação já documentada e aceita para `/api/transcribe`, agora estendida a um endpoint que expõe dado financeiro, não só a funcionalidade do produto. Revisitar quando contas/autenticação de usuário (P3) existirem — nesse momento, o caminho natural é mover para autenticação real (ex.: checar um papel de "owner"), não senha estática.
+
+### O que foi construído
+- Backend: `gemini_calls` (schema + migração `0003_swift_tempest`), `GET /api/admin/gemini-usage` (hoje/mês/total gasto e nº de chamadas, "saldo restante" se houver orçamento, últimas 200 chamadas), `POST /api/transcribe` passou a gravar cada chamada (dentro de `try/catch` que não bloqueia a resposta ao usuário — um hiccup no Postgres não pode fazer alguém perder o ditado que acabou de falar).
+- `emptyResult` explícito no retorno da Gemini (`gemini.ts`), em vez de inferir "sem fala detectada" por `candidateTokens === 0`: thinking tokens deixam `candidateTokens > 0` mesmo quando o resultado final é vazio, então esse número sozinho não seria um sinal confiável.
+- Desktop: nova seção "Custo de IA" (`UsageSection.xaml`/`.xaml.cs`) na navegação lateral, com os mesmos cartões de resumo e o mesmo tratamento de scroll suave por pixel do Histórico (D026, `SmoothScroll`/`VirtualizingPanel.ScrollUnit="Pixel"`).
+
+### Validado
+Build limpo do backend (`tsc --noEmit`) e do desktop (`dotnet build`, 0 erros/avisos). **Pendente do proprietário**: julgar os números contra o extrato real da Gemini/Google Cloud depois de uso real — a estimativa usa os mesmos tokens que a Gemini reporta, mas não é o extrato oficial de cobrança.

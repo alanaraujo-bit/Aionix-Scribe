@@ -29,6 +29,12 @@ export interface TranscribeResult {
   text: string;
   modelVersion: string;
   geminiLatencyMs: number;
+  finishReason: string | undefined;
+  // true só no caminho "finishReason=STOP sem texto" (nenhuma fala detectada) — permite ao painel
+  // de custo (D027) separar "gasto que virou texto" de "gasto que não virou nada", sem precisar
+  // adivinhar isso a partir de contagem de tokens (thinking tokens tornam candidateTokens>0 mesmo
+  // quando o resultado final é vazio, então esse número sozinho não seria um sinal confiável).
+  emptyResult: boolean;
   usage: {
     promptTokens: number;
     candidateTokens: number;
@@ -93,6 +99,8 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
         text: "",
         modelVersion: json?.modelVersion ?? GEMINI_MODEL,
         geminiLatencyMs,
+        finishReason,
+        emptyResult: true,
         usage: {
           promptTokens: json?.usageMetadata?.promptTokenCount ?? 0,
           candidateTokens: json?.usageMetadata?.candidatesTokenCount ?? 0,
@@ -107,6 +115,8 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
     text: text.trim(),
     modelVersion: json?.modelVersion ?? GEMINI_MODEL,
     geminiLatencyMs,
+    finishReason,
+    emptyResult: false,
     usage: {
       promptTokens: json?.usageMetadata?.promptTokenCount ?? 0,
       candidateTokens: json?.usageMetadata?.candidatesTokenCount ?? 0,

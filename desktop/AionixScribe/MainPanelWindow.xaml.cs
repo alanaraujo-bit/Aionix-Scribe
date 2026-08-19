@@ -8,6 +8,7 @@ public enum PanelSection
 {
     Dictation,
     History,
+    Usage,
     Settings,
     Update,
 }
@@ -20,6 +21,7 @@ public partial class MainPanelWindow : Window
 {
     private DictationSection? _dictation;
     private HistorySection? _history;
+    private UsageSection? _usage;
     private SettingsSection? _settings;
     private UpdateSection? _update;
 
@@ -44,6 +46,7 @@ public partial class MainPanelWindow : Window
         var target = section switch
         {
             PanelSection.History => NavHistory,
+            PanelSection.Usage => NavUsage,
             PanelSection.Settings => NavSettings,
             _ => NavDictation,
         };
@@ -66,6 +69,7 @@ public partial class MainPanelWindow : Window
         if (!IsInitialized) return;
 
         if (ReferenceEquals(sender, NavHistory)) ShowSection(PanelSection.History);
+        else if (ReferenceEquals(sender, NavUsage)) ShowSection(PanelSection.Usage);
         else if (ReferenceEquals(sender, NavSettings)) ShowSection(PanelSection.Settings);
         else ShowSection(PanelSection.Dictation);
     }
@@ -78,6 +82,12 @@ public partial class MainPanelWindow : Window
                 _history ??= new HistorySection();
                 _history.Refresh();
                 SectionHost.Content = _history;
+                break;
+
+            case PanelSection.Usage:
+                _usage ??= new UsageSection();
+                _usage.Refresh();
+                SectionHost.Content = _usage;
                 break;
 
             case PanelSection.Settings:
@@ -117,6 +127,7 @@ public partial class MainPanelWindow : Window
         RefreshSidebar();
         (SectionHost.Content as DictationSection)?.Refresh();
         (SectionHost.Content as HistorySection)?.Refresh();
+        (SectionHost.Content as UsageSection)?.Refresh();
         (SectionHost.Content as SettingsSection)?.Refresh();
     }
 

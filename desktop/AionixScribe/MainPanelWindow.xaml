@@ -89,6 +89,8 @@
                                  Style="{StaticResource NavItemStyle}" Checked="OnNavChanged"/>
                     <RadioButton x:Name="NavHistory" GroupName="Nav" Content="Histórico" Tag="&#xE81C;"
                                  Style="{StaticResource NavItemStyle}" Checked="OnNavChanged"/>
+                    <RadioButton x:Name="NavUsage" GroupName="Nav" Content="Custo de IA" Tag="&#xE825;"
+                                 Style="{StaticResource NavItemStyle}" Checked="OnNavChanged"/>
                     <RadioButton x:Name="NavSettings" GroupName="Nav" Content="Configurações" Tag="&#xE713;"
                                  Style="{StaticResource NavItemStyle}" Checked="OnNavChanged"/>
                 </StackPanel>

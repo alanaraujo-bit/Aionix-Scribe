@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   integer,
+  numeric,
   boolean,
   timestamp,
   uniqueIndex,
@@ -87,6 +88,32 @@ export const usageEvents = pgTable(
     uniqueIndex("usage_events_user_recording_idx").on(table.userId, table.recordingId),
     index("usage_events_user_created_at_idx").on(table.userId, table.createdAt.desc()),
   ],
+);
+
+/// Registro de CADA chamada à Gemini, para o painel interno de custo (visto em desktop/AionixScribe,
+/// seção "Custo de IA"). Deliberadamente separada de `usageEvents`/`usagePeriods`: aquelas existem
+/// para o metering por USUÁRIO/assinatura do P3 (ainda não implementado — não há contas reais hoje,
+/// ver comentário em MainPanelWindow.xaml), e exigiriam um `userId` que não existe para o fluxo atual
+/// do desktop. Esta tabela não depende de conta nenhuma: é gasto real em USD, por chamada, ponto.
+/// `costUsd` é calculado e gravado NO MOMENTO da chamada (não recalculado depois na leitura) — se o
+/// preço da Gemini mudar no futuro, o histórico já gravado continua refletindo o que foi cobrado de
+/// verdade naquele dia, em vez de ser reescrito silenciosamente pelo preço atual.
+export const geminiCalls = pgTable(
+  "gemini_calls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    modelVersion: text("model_version").notNull(),
+    audioBytes: integer("audio_bytes"),
+    promptTokens: integer("prompt_tokens").notNull(),
+    candidateTokens: integer("candidate_tokens").notNull(),
+    totalTokens: integer("total_tokens").notNull(),
+    costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull(),
+    finishReason: text("finish_reason"),
+    emptyResult: boolean("empty_result").notNull().default(false),
+    geminiLatencyMs: integer("gemini_latency_ms"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("gemini_calls_created_at_idx").on(table.createdAt.desc())],
 );
 
 export const webhookEvents = pgTable("webhook_events", {

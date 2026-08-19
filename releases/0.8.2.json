@@ -1,0 +1,15 @@
+{
+  "version": "0.8.2",
+  "headline": "Novo painel de custo de IA",
+  "summary": "Uma nova aba, \"Custo de IA\", mostra em tempo real o quanto o Aionix Scribe gastou de verdade processando ditados: hoje, este mês e no total, com histórico chamada por chamada.",
+  "highlights": [
+    {
+      "title": "Gasto calculado com números reais",
+      "body": "Cada chamada de transcrição já reporta os tokens que ela consumiu; o painel converte isso no custo real em dólar, na hora, sem estimativa aproximada."
+    },
+    {
+      "title": "Histórico chamada por chamada",
+      "body": "Além dos totais, a aba lista as últimas chamadas com data, tokens e custo de cada uma — dá para acompanhar exatamente onde o gasto está acontecendo."
+    }
+  ]
+}

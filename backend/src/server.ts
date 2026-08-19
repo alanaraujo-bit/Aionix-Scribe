@@ -1,8 +1,10 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { sql } from "drizzle-orm";
+import { sql, gte, desc } from "drizzle-orm";
 import { transcribeAudio, GeminiError } from "./gemini.js";
 import { db } from "./db/index.js";
+import { geminiCalls } from "./db/schema.js";
+import { estimateCostUsd, GEMINI_MONTHLY_BUDGET_USD } from "./config/pricing.js";
 
 const app = Fastify({ logger: true, bodyLimit: 30 * 1024 * 1024 });
 
@@ -101,6 +103,25 @@ app.post("/api/transcribe", async (req, reply) => {
     const result = await transcribeAudio(audioBase64, mimeType);
     const totalLatencyMs = performance.now() - requestStart;
 
+    // Alimenta o painel de custo (GET /api/admin/gemini-usage). Envolvido em try/catch e não
+    // aguardando bloquear a transcrição: um hiccup no Postgres não pode fazer o usuário perder o
+    // ditado que ele acabou de falar só porque o registro de custo falhou.
+    try {
+      await db.insert(geminiCalls).values({
+        modelVersion: result.modelVersion,
+        audioBytes: body.length,
+        promptTokens: result.usage.promptTokens,
+        candidateTokens: result.usage.candidateTokens,
+        totalTokens: result.usage.totalTokens,
+        costUsd: estimateCostUsd(result.usage.promptTokens, result.usage.candidateTokens).toFixed(6),
+        geminiLatencyMs: Math.round(result.geminiLatencyMs),
+        finishReason: result.finishReason ?? null,
+        emptyResult: result.emptyResult,
+      });
+    } catch (err) {
+      req.log.error(err, "Falha ao registrar uso da Gemini para o painel de custo (resposta ao usuário não é afetada)");
+    }
+
     return reply.send({
       text: result.text,
       modelVersion: result.modelVersion,
@@ -116,6 +137,79 @@ app.post("/api/transcribe", async (req, reply) => {
       return reply.code(502).send({ error: "Falha ao transcrever com a Gemini API", detail: err.message });
     }
     req.log.error(err, "Unexpected error in /api/transcribe");
+    return reply.code(500).send({ error: "Erro interno" });
+  }
+});
+
+// Painel interno de custo (desktop/AionixScribe, seção "Custo de IA"). Decisão explícita do
+// proprietário: fica atrás do MESMO stopgap do /api/transcribe (D013), não de senha própria — ver
+// DECISIONS.md D027 para a ressalva conhecida (qualquer pessoa com o app instalado consegue ver
+// o gasto total do negócio, já que o secret embutido no binário protege contra "achou a URL",
+// não contra "instalou o app oficial").
+app.get("/api/admin/gemini-usage", async (req, reply) => {
+  if (desktopSharedSecret && req.headers["x-app-secret"] !== desktopSharedSecret) {
+    return reply.code(401).send({ error: "Não autorizado" });
+  }
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  try {
+    const [allTime] = await db
+      .select({
+        spentUsd: sql<string>`coalesce(sum(${geminiCalls.costUsd}), 0)`,
+        calls: sql<string>`count(*)`,
+      })
+      .from(geminiCalls);
+
+    const [thisMonth] = await db
+      .select({
+        spentUsd: sql<string>`coalesce(sum(${geminiCalls.costUsd}), 0)`,
+        calls: sql<string>`count(*)`,
+      })
+      .from(geminiCalls)
+      .where(gte(geminiCalls.createdAt, startOfMonth));
+
+    const [today] = await db
+      .select({
+        spentUsd: sql<string>`coalesce(sum(${geminiCalls.costUsd}), 0)`,
+        calls: sql<string>`count(*)`,
+      })
+      .from(geminiCalls)
+      .where(gte(geminiCalls.createdAt, startOfToday));
+
+    // Só o suficiente para um histórico legível no painel — não é exportação/relatório completo.
+    const recent = await db.select().from(geminiCalls).orderBy(desc(geminiCalls.createdAt)).limit(200);
+
+    const spentThisMonthUsd = Number(thisMonth?.spentUsd ?? 0);
+
+    return reply.send({
+      budgetUsd: GEMINI_MONTHLY_BUDGET_USD,
+      remainingThisMonthUsd: GEMINI_MONTHLY_BUDGET_USD !== null ? GEMINI_MONTHLY_BUDGET_USD - spentThisMonthUsd : null,
+      spentTodayUsd: Number(today?.spentUsd ?? 0),
+      spentThisMonthUsd,
+      spentAllTimeUsd: Number(allTime?.spentUsd ?? 0),
+      callCount: {
+        today: Number(today?.calls ?? 0),
+        thisMonth: Number(thisMonth?.calls ?? 0),
+        allTime: Number(allTime?.calls ?? 0),
+      },
+      recent: recent.map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt,
+        modelVersion: r.modelVersion,
+        promptTokens: r.promptTokens,
+        candidateTokens: r.candidateTokens,
+        totalTokens: r.totalTokens,
+        costUsd: Number(r.costUsd),
+        finishReason: r.finishReason,
+        emptyResult: r.emptyResult,
+        geminiLatencyMs: r.geminiLatencyMs,
+      })),
+    });
+  } catch (err) {
+    req.log.error(err, "Falha ao consultar uso da Gemini para o painel de custo");
     return reply.code(500).send({ error: "Erro interno" });
   }
 });

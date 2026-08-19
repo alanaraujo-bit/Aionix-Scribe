@@ -22,6 +22,13 @@
       "when": 1786316643348,
       "tag": "0002_eminent_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787111837179,
+      "tag": "0003_swift_tempest",
+      "breakpoints": true
     }
   ]
 }

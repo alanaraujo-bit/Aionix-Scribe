@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -5,6 +6,27 @@ using System.Text.Json;
 namespace AionixScribe;
 
 public sealed record TranscribeResponse(string Text, int TotalLatencyMs, int GeminiLatencyMs, int ClientLatencyMs);
+
+public sealed record GeminiUsageCall(
+    DateTime CreatedAtUtc,
+    string ModelVersion,
+    int PromptTokens,
+    int CandidateTokens,
+    int TotalTokens,
+    double CostUsd,
+    string? FinishReason,
+    bool EmptyResult);
+
+public sealed record GeminiUsageSummary(
+    double? BudgetUsd,
+    double? RemainingThisMonthUsd,
+    double SpentTodayUsd,
+    double SpentThisMonthUsd,
+    double SpentAllTimeUsd,
+    int CallsToday,
+    int CallsThisMonth,
+    int CallsAllTime,
+    IReadOnlyList<GeminiUsageCall> Recent);
 
 public sealed class BackendClient : IDisposable
 {
@@ -60,6 +82,53 @@ public sealed class BackendClient : IDisposable
         }
 
         return new TranscribeResponse(text, totalMs, geminiMs, clientLatencyMs);
+    }
+
+    /// Alimenta a seção "Custo de IA" (painel interno, D027) com o gasto real registrado pelo
+    /// backend a cada chamada à Gemini — nada calculado no cliente, o backend é a fonte de verdade
+    /// do preço.
+    public async Task<GeminiUsageSummary> GetGeminiUsageAsync()
+    {
+        using var response = await _http.GetAsync($"{BaseUrl}/api/admin/gemini-usage");
+        var body = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"Backend retornou {(int)response.StatusCode}: {body}");
+        }
+
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+
+        double? ReadNullableDouble(string prop) =>
+            root.TryGetProperty(prop, out var v) && v.ValueKind != JsonValueKind.Null ? v.GetDouble() : null;
+
+        var callCount = root.GetProperty("callCount");
+
+        var recent = new List<GeminiUsageCall>();
+        foreach (var item in root.GetProperty("recent").EnumerateArray())
+        {
+            recent.Add(new GeminiUsageCall(
+                CreatedAtUtc: DateTime.Parse(item.GetProperty("createdAt").GetString()!, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal),
+                ModelVersion: item.GetProperty("modelVersion").GetString() ?? "",
+                PromptTokens: item.GetProperty("promptTokens").GetInt32(),
+                CandidateTokens: item.GetProperty("candidateTokens").GetInt32(),
+                TotalTokens: item.GetProperty("totalTokens").GetInt32(),
+                CostUsd: item.GetProperty("costUsd").GetDouble(),
+                FinishReason: item.TryGetProperty("finishReason", out var fr) && fr.ValueKind != JsonValueKind.Null ? fr.GetString() : null,
+                EmptyResult: item.TryGetProperty("emptyResult", out var er) && er.GetBoolean()));
+        }
+
+        return new GeminiUsageSummary(
+            BudgetUsd: ReadNullableDouble("budgetUsd"),
+            RemainingThisMonthUsd: ReadNullableDouble("remainingThisMonthUsd"),
+            SpentTodayUsd: root.GetProperty("spentTodayUsd").GetDouble(),
+            SpentThisMonthUsd: root.GetProperty("spentThisMonthUsd").GetDouble(),
+            SpentAllTimeUsd: root.GetProperty("spentAllTimeUsd").GetDouble(),
+            CallsToday: callCount.GetProperty("today").GetInt32(),
+            CallsThisMonth: callCount.GetProperty("thisMonth").GetInt32(),
+            CallsAllTime: callCount.GetProperty("allTime").GetInt32(),
+            Recent: recent);
     }
 
     public void Dispose() => _http.Dispose();
